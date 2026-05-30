@@ -317,7 +317,7 @@ async def notify_guardian_check(
 
 # ── Email dispatch ────────────────────────────────────────────────────────────
 
-async def _send_email(subject: str, text: str, html: str, to: str) -> None:
+async def _send_email(subject: str, text: str, html: str, to: str) -> bool:
     """Try Gmail SMTP first (sends to anyone), fall back to Resend."""
     from app.config import settings
 
@@ -330,15 +330,16 @@ async def _send_email(subject: str, text: str, html: str, to: str) -> None:
             "Set SMTP_HOST/SMTP_USER/SMTP_PASSWORD in backend/.env.",
             to,
         )
-        return
+        return False
 
     if smtp_host:
         _send_via_smtp(smtp_host, to, subject, text, html, settings)
         logger.info("Email sent via SMTP to %s | subject: %s", to, subject)
-        return
+        return True
 
     await _send_via_resend(resend_key, to, subject, html, text)
     logger.info("Email sent via Resend to %s | subject: %s", to, subject)
+    return True
 
 
 async def send_test_email(to: str) -> dict:

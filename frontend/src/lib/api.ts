@@ -54,6 +54,8 @@ export const api = {
       briefing_id: string
       defense_count: number
       notification_id: string
+      email_sent: boolean
+      email_error: string
       guardian_schedule: { day90: string; month12: string; month36: string; year5: string; next_check: string }
       permit_address: string
       nyc_dob_url: string

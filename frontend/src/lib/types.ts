@@ -130,8 +130,11 @@ export interface Briefing {
   citations: string[]
   status: 'draft' | 'edited' | 'reviewed' | 'exported' | 'submitted'
   reviewed_by_email?: string
+  submitted_by_email?: string
   guardian_schedule?: Record<string, string>
   guardian_emails?: string[]
+  defense_count?: number
+  defense_submissions?: { email?: string; submitted_at: string }[]
   intervention_strategy?: {
     recommended_action: string
     confidence: 'High' | 'Medium' | 'Low'

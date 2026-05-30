@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import quote, quote_plus
 import re
 import logging
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
 _log = logging.getLogger(__name__)
 from app.db.repositories.briefings import (
@@ -17,6 +17,59 @@ from app.agents.orchestrator import start_pipeline
 from app.services.quality import evaluate_briefing_quality, score_briefing_quality
 
 router = APIRouter(prefix="/briefings", tags=["briefings"])
+
+
+def _defense_count_from_briefing(briefing: dict) -> int:
+    """Return durable filing count, with a legacy fallback for old records."""
+    stored = briefing.get("defense_count")
+    if isinstance(stored, int) and stored > 0:
+        return stored
+
+    submissions = briefing.get("defense_submissions")
+    if isinstance(submissions, list) and submissions:
+        return len(submissions)
+
+    emails = {
+        str(email).strip().lower()
+        for email in (briefing.get("guardian_emails") or [])
+        if str(email).strip()
+    }
+    submitted_by = str(briefing.get("submitted_by_email") or "").strip().lower()
+    if submitted_by:
+        emails.add(submitted_by)
+    return max(1, len(emails)) if briefing.get("status") == "submitted" else 0
+
+
+async def _notification_defense_count(db, briefing: dict) -> int:
+    briefing_id = str(briefing.get("_id") or briefing.get("id") or "")
+    permit_id = str(briefing.get("permit_id") or "")
+    if not briefing_id and not permit_id:
+        return 0
+
+    query: dict = {"type": "guardian_activated"}
+    if briefing_id:
+        query["briefing_id"] = briefing_id
+    else:
+        query["permit_id"] = permit_id
+    return await db.notifications.count_documents(query)
+
+
+async def _ensure_defense_count_fields(briefing: dict) -> dict:
+    if briefing.get("status") != "submitted":
+        return briefing
+
+    from app.db.client import get_db
+    db = get_db()
+    durable_count = _defense_count_from_briefing(briefing)
+    notification_count = await _notification_defense_count(db, briefing)
+    count = max(durable_count, notification_count)
+    if count > durable_count:
+        await db.briefings.update_one(
+            {"_id": briefing["_id"]},
+            {"$set": {"defense_count": count}},
+        )
+        briefing["defense_count"] = count
+    return briefing
 
 
 async def _ensure_case_file_fields(briefing: dict) -> dict:
@@ -49,22 +102,22 @@ async def defense_map():
     db = get_db()
     cursor = db.briefings.find(
         {"status": "submitted"},
-        {"permit_id": 1, "guardian_emails": 1, "submitted_by_email": 1},
+        {
+            "permit_id": 1,
+            "guardian_emails": 1,
+            "submitted_by_email": 1,
+            "defense_count": 1,
+            "defense_submissions": 1,
+            "status": 1,
+        },
     )
     permit_counts: dict[str, int] = {}
     async for doc in cursor:
         permit_id = doc.get("permit_id", "")
         if not permit_id:
             continue
-        emails = {
-            str(email).strip().lower()
-            for email in (doc.get("guardian_emails") or [])
-            if str(email).strip()
-        }
-        submitted_by = str(doc.get("submitted_by_email") or "").strip().lower()
-        if submitted_by:
-            emails.add(submitted_by)
-        permit_counts[permit_id] = permit_counts.get(permit_id, 0) + max(1, len(emails))
+        count = max(_defense_count_from_briefing(doc), await _notification_defense_count(db, doc))
+        permit_counts[permit_id] = permit_counts.get(permit_id, 0) + count
 
     if not permit_counts:
         return {"defenses": []}
@@ -95,6 +148,7 @@ async def trigger_briefing(body: dict):
     existing = await get_latest_briefing_for_permit(permit_id)
     if existing and existing.get("status") == "submitted":
         existing = await _ensure_case_file_fields(existing)
+        existing = await _ensure_defense_count_fields(existing)
         if not existing.get("coalition_summary") or not existing.get("developer_snapshot"):
             briefing_id = await start_pipeline(permit_id)
             return {"briefing_id": briefing_id, "status": "running"}
@@ -111,6 +165,7 @@ async def get_briefing(briefing_id: str):
     if not briefing:
         raise HTTPException(status_code=404, detail="Briefing not found")
     briefing = await _ensure_case_file_fields(briefing)
+    briefing = await _ensure_defense_count_fields(briefing)
     briefing["id"] = str(briefing.pop("_id"))
     return briefing
 
@@ -129,6 +184,7 @@ async def get_briefing_quality(briefing_id: str):
     briefing = await get_briefing_by_id(briefing_id)
     if not briefing:
         raise HTTPException(status_code=404, detail="Briefing not found")
+    briefing = await _ensure_defense_count_fields(briefing)
     return score_briefing_quality(briefing)
 
 
@@ -244,7 +300,7 @@ def _build_parks_email_url(address: str, draft_comment: str) -> str:
 
 
 @router.post("/{briefing_id}/submit")
-async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: dict = {}):
+async def submit_briefing(briefing_id: str, body: dict = {}):
     briefing = await get_briefing_by_id(briefing_id)
     if not briefing:
         raise HTTPException(status_code=404, detail="Briefing not found")
@@ -252,13 +308,17 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
     submitted_email: str = body.get("email", "").strip() if body else ""
 
     already_submitted = briefing.get("status") == "submitted"
+    submitted_at = datetime.now(timezone.utc)
+    submission_record = {
+        "email": submitted_email,
+        "submitted_at": submitted_at.isoformat(),
+    }
 
     if already_submitted:
         # Reuse the original guardian schedule so all defenders share the same timeline
         guardian_schedule = briefing.get("guardian_schedule") or {}
         # Backfill if somehow missing
         if not guardian_schedule:
-            submitted_at = datetime.now(timezone.utc)
             guardian_schedule = {
                 "day90":   (submitted_at + timedelta(days=90)).isoformat(),
                 "month12": (submitted_at + timedelta(days=365)).isoformat(),
@@ -266,17 +326,25 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
                 "year5":   (submitted_at + timedelta(days=1825)).isoformat(),
                 "next_check": "day90",
             }
-        # Add this defender's email to the list (no duplicates)
+        from app.db.client import get_db
+        db = get_db()
+        new_defense_count = max(
+            _defense_count_from_briefing(briefing),
+            await _notification_defense_count(db, briefing),
+        ) + 1
+        update_doc: dict = {
+            "$set": {
+                "defense_count": new_defense_count,
+                "last_defense_at": submitted_at.isoformat(),
+                "guardian_schedule": guardian_schedule,
+            },
+            "$push": {"defense_submissions": submission_record},
+        }
         if submitted_email:
-            from app.db.client import get_db
-            db = get_db()
-            await db.briefings.update_one(
-                {"_id": briefing["_id"]},
-                {"$addToSet": {"guardian_emails": submitted_email}},
-            )
-            briefing = await get_briefing_by_id(briefing_id) or briefing
+            update_doc["$addToSet"] = {"guardian_emails": submitted_email}
+        await db.briefings.update_one({"_id": briefing["_id"]}, update_doc)
+        briefing = await get_briefing_by_id(briefing_id) or briefing
     else:
-        submitted_at = datetime.now(timezone.utc)
         guardian_schedule = {
             "day90":   (submitted_at + timedelta(days=90)).isoformat(),
             "month12": (submitted_at + timedelta(days=365)).isoformat(),
@@ -288,6 +356,9 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
             "status": "submitted",
             "submitted_at": submitted_at.isoformat(),
             "guardian_schedule": guardian_schedule,
+            "defense_count": 1,
+            "defense_submissions": [submission_record],
+            "last_defense_at": submitted_at.isoformat(),
         }
         if submitted_email:
             update_fields["submitted_by_email"] = submitted_email
@@ -300,8 +371,9 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
     draft   = briefing.get("draft_comment", "")
 
     # Create the in-app notification before responding so the UI inbox can
-    # update immediately. The slower external email send happens in the
-    # background and logs failures without hiding the submitted state.
+    # update immediately. External email is attempted in-request so delivery
+    # failures are visible to the caller instead of disappearing in the
+    # background task runner.
     from app.services.notification_service import (
         build_guardian_activated_message,
         notify_guardian_activated,
@@ -335,9 +407,9 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
         send_email=False,
     )
 
-    async def _send_guardian_email() -> None:
-        if not submitted_email:
-            return
+    email_sent = False
+    email_error = ""
+    if submitted_email:
         try:
             subject, body_text, body_html = build_guardian_activated_message(
                 address=address,
@@ -348,27 +420,22 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
                 ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
                 guardian_schedule=guardian_schedule,
             )
-            await _send_email(subject, body_text, body_html, submitted_email)
+            email_sent = await _send_email(subject, body_text, body_html, submitted_email)
+            if not email_sent:
+                email_error = "provider_not_configured"
         except Exception as exc:
+            email_error = "delivery_failed"
             _log.error("Guardian notification failed: %s", exc, exc_info=True)
 
-    background.add_task(_send_guardian_email)
-
-    defender_emails = {
-        str(email).strip().lower()
-        for email in (briefing.get("guardian_emails") or [])
-        if str(email).strip()
-    }
-    submitted_by_email = str(briefing.get("submitted_by_email") or "").strip().lower()
-    if submitted_by_email:
-        defender_emails.add(submitted_by_email)
-    defense_count = max(1, len(defender_emails)) if briefing.get("status") == "submitted" else 1
+    defense_count = _defense_count_from_briefing(briefing)
 
     return {
         "status": "submitted",
         "briefing_id": briefing_id,
         "defense_count": defense_count,
         "notification_id": notification_id,
+        "email_sent": email_sent,
+        "email_error": email_error,
         "guardian_schedule": guardian_schedule,
         "permit_address": address,
         # Three links that actually open and do something useful:
@@ -376,4 +443,3 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
         "nyc_parks_email":  _build_parks_email_url(address, draft),
         "maps_url":         _build_maps_url(address),
     }
-

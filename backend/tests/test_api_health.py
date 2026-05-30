@@ -2,6 +2,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient, ASGITransport
+from app.api.briefings import _defense_count_from_briefing
 from app.main import app
 
 
@@ -122,3 +123,24 @@ async def test_patch_briefing_rejects_invalid_status():
         resp = await client.patch("/briefings/brief_test", json={"status": "autofile"})
 
     assert resp.status_code == 422
+
+
+def test_defense_count_prefers_durable_submission_count():
+    briefing = {
+        "status": "submitted",
+        "defense_count": 3,
+        "guardian_emails": ["same@example.com"],
+        "submitted_by_email": "same@example.com",
+    }
+
+    assert _defense_count_from_briefing(briefing) == 3
+
+
+def test_defense_count_legacy_falls_back_to_unique_watchers():
+    briefing = {
+        "status": "submitted",
+        "guardian_emails": ["first@example.com", "first@example.com"],
+        "submitted_by_email": "second@example.com",
+    }
+
+    assert _defense_count_from_briefing(briefing) == 2

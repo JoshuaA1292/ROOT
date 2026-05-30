@@ -2083,6 +2083,10 @@ button {
   text-transform: uppercase;
 }
 
+.cf__guardian-active--warning {
+  background: var(--rust-deep);
+}
+
 /* Submitted footer */
 .cf__submitted-footer {
   display: flex;

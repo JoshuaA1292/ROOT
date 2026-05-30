@@ -198,6 +198,8 @@ export default function MapPage() {
   const [submitResult, setSubmitResult] = useState<{
     defense_count: number
     notification_id: string
+    email_sent?: boolean
+    email_error?: string
     guardian_schedule: { day90: string; month12: string; month36: string; year5: string }
     permit_address: string
     nyc_dob_url: string
@@ -901,9 +903,20 @@ function _fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function _defenseCount(briefing?: Briefing | null): number {
+  if (!briefing || briefing.status !== 'submitted') return 0
+  if (typeof briefing.defense_count === 'number' && briefing.defense_count > 0) return briefing.defense_count
+  if (briefing.defense_submissions?.length) return briefing.defense_submissions.length
+  const emails = new Set((briefing.guardian_emails ?? []).filter(Boolean).map(email => email.trim().toLowerCase()))
+  if (briefing.submitted_by_email) emails.add(briefing.submitted_by_email.trim().toLowerCase())
+  return Math.max(1, emails.size)
+}
+
 type SubmitResultShape = {
   defense_count: number
   notification_id: string
+  email_sent?: boolean
+  email_error?: string
   guardian_schedule: { day90: string; month12: string; month36: string; year5: string }
   permit_address: string; nyc_dob_url: string; nyc_parks_email: string; maps_url: string
 }
@@ -1320,6 +1333,11 @@ function DraftPanel({
             ● Intervention logged in ROOT's public accountability record — {submitResult?.defense_count ?? 1} defense{(submitResult?.defense_count ?? 1) !== 1 ? 's have' : ' has'} been filed — Day 90 check: {_fmtDate(gs.day90)}
           </div>
         )}
+        {submitted && submitResult?.email_error && (
+          <div className="cf__guardian-active cf__guardian-active--warning">
+            Email delivery needs attention. Your defense was filed, but ROOT could not confirm the inbox send.
+          </div>
+        )}
       </section>
 
       {/* ══ 6. GUARDIAN PLAN ════════════════════════════════════════════ */}
@@ -1371,9 +1389,9 @@ function DraftPanel({
         </div>
       ) : (
         <div className="cf__submit">
-          {briefing?.guardian_emails && briefing.guardian_emails.length > 0 && (
+          {_defenseCount(briefing) > 0 && (
             <div className="cf__prior-defenses">
-              ✓ {briefing.guardian_emails.length} defender{briefing.guardian_emails.length !== 1 ? 's' : ''} already watching this permit — add your defense below.
+              ✓ {_defenseCount(briefing)} defense{_defenseCount(briefing) !== 1 ? 's have' : ' has'} already been filed for this permit — add your defense below.
             </div>
           )}
           <p className="cf__submit-hint">
