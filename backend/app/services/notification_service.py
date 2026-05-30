@@ -108,7 +108,12 @@ def _html_guardian_activated(
     ROOT monitors this tree automatically at each checkpoint. The developer's compliance
     record updates regardless of permit outcome — permanently attached to future applications.
   </p>
-  <p style="color:#333;font-size:10px;margin:14px 0 0;font-family:'Courier New',monospace">
+  <p style="color:#444;font-size:10px;margin:14px 0 0;line-height:1.6">
+    📬 If this landed in spam, mark it <strong style="color:#666">Not Spam</strong> and add
+    <span style="color:#888">rootfortrees4l@gmail.com</span> to your contacts so future
+    guardian updates reach your inbox.
+  </p>
+  <p style="color:#333;font-size:10px;margin:10px 0 0;font-family:'Courier New',monospace">
     — ROOT Guardian System &nbsp;·&nbsp; Urban Tree Intelligence
   </p>
 </td></tr>
