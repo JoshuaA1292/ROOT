@@ -343,7 +343,7 @@ async def _run_direct(permit_id: str, briefing_id: str, queue: asyncio.Queue) ->
             msg = "The Gemini API has been called too many times. Please try again later."
         draft_comment = polish_agent.run("", permit, coalition, developer, precedents, policies)
         citations = briefing_agent._extract_citations(draft_comment)
-        await _emit(briefing_id, queue, "warning", {"message": f"{msg} Structured placeholder generated."})
+        await _emit(briefing_id, queue, "warning", {"message": f"{msg} Intervention drafted from structured evidence."})
         await _emit(briefing_id, queue, "polish_complete", {"status": "release_ready"})
 
     # Save draft first — always lands regardless of what follows
@@ -378,57 +378,3 @@ async def _run_direct(permit_id: str, briefing_id: str, queue: asyncio.Queue) ->
     await _emit(briefing_id, queue, "done", {})
 
 
-def _placeholder_comment(
-    permit: dict,
-    coalition,
-    developer: DeveloperSnapshot,
-    policies: list | None = None,
-) -> str:
-    """Structured placeholder comment when Gemini is not available — useful for local dev."""
-    policy_lines = "\n".join(
-        f"- {p.title} ({p.section}): {p.text_excerpt}"
-        for p in (policies or [])
-    )
-
-    return f"""## Draft Public Comment — {permit.get('address', '')}
-
-**[PLACEHOLDER — Add your GOOGLE_CLOUD_PROJECT to generate via Gemini]**
-
-### Opening Statement
-This comment is filed in response to Permit {permit.get('_id', '')} for the proposed \
-removal of {coalition.tree_count} street trees at {permit.get('address', '')} \
-for a {permit.get('project_type', '').replace('_', ' ')} project.
-
-### Ecosystem Impact
-The {coalition.tree_count} threatened trees provide combined annual ecosystem services \
-valued at **${coalition.total_ecosystem_usd_yr:,.2f}/year**, including:
-- Stormwater interception: {coalition.stormwater_gal_yr:,.0f} gallons/year
-- Combined canopy: {coalition.canopy_sqft:,.0f} sq ft
-- Annual cooling value: ${coalition.cooling_usd_yr:,.2f}
-- Environmental justice tier: **{coalition.ej_tier}**
-
-### Developer Compliance History
-{developer.name} has filed {developer.permits_filed} prior removal permits, \
-promising {developer.promised_replacements} replacement trees. \
-Only {developer.verified_surviving} are documented as surviving — \
-a **{developer.compliance_rate * 100:.0f}% compliance rate**, \
-compared to the city's {developer.city_target * 100:.0f}% target. \
-That is a {developer.target_delta * 100:.0f} percentage-point gap, with \
-{developer.at_risk_replacements} replacement trees below the target survival benchmark.
-
-### Policy Contradictions
-The permit record should address the following city policy commitments before approval:
-{policy_lines or '- No city policy references were available in the corpus.'}
-
-### Requested Conditions
-- Surety bond covering 150% of replacement planting cost
-- Independent arborist verification at 1, 3, and 5 years post-planting
-- GPS-tagged planting records submitted to NYC Parks ForMS
-- Species diversity requirement: minimum 3 distinct approved species
-
-### Citations & Data Sources
-- USDA i-Tree Benefits methodology (NYC climate zone)
-- NYC Administrative Code § 18-107
-- NYC Parks Rule 1-04
-- OneNYC 2050 Canopy Target (30% by 2035)
-"""
