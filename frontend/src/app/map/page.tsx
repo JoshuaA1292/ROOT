@@ -164,24 +164,59 @@ function pickPermitForTree(tree: TreeSummary, permits: Permit[]) {
   return permits.find(p => p.threatened_tree_ids.includes(tree.id)) ?? null
 }
 
-function usePermitData() {
+function useBackendWake() {
+  const [waking, setWaking] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+
+    async function ping() {
+      try {
+        const res = await fetch(`${BASE}/health`, { cache: 'no-store' })
+        if (!cancelled) {
+          if (res.ok) {
+            setWaking(false)
+          } else {
+            setWaking(true)
+            timer = setTimeout(ping, 3000)
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setWaking(true)
+          timer = setTimeout(ping, 3000)
+        }
+      }
+    }
+
+    ping()
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [])
+
+  return waking
+}
+
+function usePermitData(ready: boolean) {
   const [permits, setPermits] = useState<Permit[]>([])
   const [threatenedIds, setThreatenedIds] = useState<Set<string>>(new Set())
   const [threatenedPermits, setThreatenedPermits] = useState<Permit[]>([])
 
   useEffect(() => {
+    if (!ready) return
     api.permits.list().then(data => {
       setPermits(data)
       setThreatenedIds(new Set(data.flatMap(p => p.threatened_tree_ids)))
       setThreatenedPermits(data.filter(p => (p.threatened_tree_ids?.length ?? 0) > 0))
     }).catch(() => {})
-  }, [])
+  }, [ready])
 
   return { permits, threatenedIds, threatenedPermits }
 }
 
 export default function MapPage() {
-  const { permits, threatenedIds, threatenedPermits } = usePermitData()
+  const backendWaking = useBackendWake()
+  const { permits, threatenedIds, threatenedPermits } = usePermitData(!backendWaking)
   const jumpIndexRef = useRef(0)
   const [selectedTree, setSelectedTree] = useState<TreeSummary | null>(null)
   const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null)
@@ -469,7 +504,14 @@ export default function MapPage() {
       <div className="radar-vignette" aria-hidden />
       <div className="radar-scanline" aria-hidden />
 
-      <header className="radar-header">
+      {backendWaking && (
+        <div className="wake-banner" role="status">
+          <span className="wake-banner__dot" />
+          Backend waking up, please wait…
+        </div>
+      )}
+
+      <header className="radar-header" style={backendWaking ? { top: 50 } : undefined}>
         <Link href="/" className="brand-lockup" aria-label="ROOT home">
           <Mark />
           <span>ROOT</span>

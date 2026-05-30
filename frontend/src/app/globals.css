@@ -297,6 +297,37 @@ button {
   animation: scan 7s linear infinite;
 }
 
+.wake-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+  color: #aaa;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wake-banner__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  flex-shrink: 0;
+  animation: wake-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes wake-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 .radar-header {
   position: absolute;
   top: 18px;
