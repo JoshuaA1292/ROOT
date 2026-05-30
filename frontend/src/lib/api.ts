@@ -52,6 +52,8 @@ export const api = {
     submit: (id: string, email?: string) => post<{
       status: string
       briefing_id: string
+      defense_count: number
+      notification_id: string
       guardian_schedule: { day90: string; month12: string; month36: string; year5: string; next_check: string }
       permit_address: string
       nyc_dob_url: string

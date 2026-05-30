@@ -196,6 +196,8 @@ export default function MapPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState<{
+    defense_count: number
+    notification_id: string
     guardian_schedule: { day90: string; month12: string; month36: string; year5: string }
     permit_address: string
     nyc_dob_url: string
@@ -210,6 +212,7 @@ export default function MapPage() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [inboxOpen, setInboxOpen] = useState(false)
   const [defendedIds, setDefendedIds] = useState<Map<string, number>>(new Map())
+  const [locallySubmittedTreeIds, setLocallySubmittedTreeIds] = useState<Set<string>>(new Set())
   // Email capture modal
   const [emailModal, setEmailModal] = useState<'submit' | null>(null)
   const [emailInput, setEmailInput] = useState('')
@@ -226,17 +229,19 @@ export default function MapPage() {
   }, [briefing])
 
   // Poll notifications every 5 seconds
+  const refreshNotifications = useCallback(() => {
+    api.notifications.list().then(data => {
+      setNotifications(data.notifications)
+      setUnreadCount(data.unread_count)
+    }).catch(() => {})
+  }, [])
+
   useEffect(() => {
-    const poll = () => {
-      api.notifications.list().then(data => {
-        setNotifications(data.notifications)
-        setUnreadCount(data.unread_count)
-      }).catch(() => {})
-    }
+    const poll = refreshNotifications
     poll()
     const interval = setInterval(poll, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [refreshNotifications])
 
   // Poll defense map every 15 seconds
   useEffect(() => {
@@ -275,6 +280,24 @@ export default function MapPage() {
       setDefendedIds(m)
     }).catch(() => {})
   }, [])
+
+  const markCurrentTreeSubmitted = useCallback((defenseCount?: number) => {
+    if (!selectedTree) return
+    setLocallySubmittedTreeIds(prev => {
+      const next = new Set(prev)
+      next.add(selectedTree.id)
+      return next
+    })
+    if (selectedPermit?.threatened_tree_ids?.length) {
+      setDefendedIds(prev => {
+        const next = new Map(prev)
+        selectedPermit.threatened_tree_ids.forEach(treeId => {
+          next.set(treeId, defenseCount ?? Math.max(1, (next.get(treeId) ?? 0) + 1))
+        })
+        return next
+      })
+    }
+  }, [selectedPermit, selectedTree])
 
   const handleTreeClick = useCallback((tree: TreeSummary) => {
     const permit = pickPermitForTree(tree, permits)
@@ -333,6 +356,7 @@ export default function MapPage() {
 
   const runPipeline = useCallback(async () => {
     if (!selectedPermit) return
+    if (selectedTree && locallySubmittedTreeIds.has(selectedTree.id)) return
     setPanel('running')
     setEvents([])
     setCompletedSteps(new Set())
@@ -424,7 +448,7 @@ export default function MapPage() {
       } catch {}
     }
     es.onerror = () => es.close()
-  }, [selectedPermit])
+  }, [locallySubmittedTreeIds, selectedPermit, selectedTree])
 
   const threatCount = threatenedIds.size
   const selectedDaysLeft = selectedPermit ? daysUntil(selectedPermit.comment_deadline) : null
@@ -525,6 +549,7 @@ export default function MapPage() {
             onRun={runPipeline}
             hasThreats={threatCount > 0}
             defenseCount={defendedIds.get(selectedTree.id)}
+            alreadySubmittedHere={locallySubmittedTreeIds.has(selectedTree.id)}
           />
         )}
 
@@ -568,12 +593,17 @@ export default function MapPage() {
                 if (briefingId) {
                   const result = await api.briefings.submit(briefingId, email)
                   setSubmitResult(result)
+                  markCurrentTreeSubmitted(result.defense_count)
                 }
                 if (draft) { try { await navigator.clipboard.writeText(draft); setCopied(true) } catch {} }
                 refreshDefenses()
-              } catch {}
-              setSubmitting(false)
-              setSubmitted(true)
+                refreshNotifications()
+                setSubmitted(true)
+              } catch {
+                setSubmitted(false)
+              } finally {
+                setSubmitting(false)
+              }
             }}
           />
         )}
@@ -600,12 +630,17 @@ export default function MapPage() {
                 if (briefingId) {
                   const result = await api.briefings.submit(briefingId, email)
                   setSubmitResult(result)
+                  markCurrentTreeSubmitted(result.defense_count)
                 }
                 if (draft) { try { await navigator.clipboard.writeText(draft); setCopied(true) } catch {} }
                 refreshDefenses()
-              } catch {}
-              setSubmitting(false)
-              setSubmitted(true)
+                refreshNotifications()
+                setSubmitted(true)
+              } catch {
+                setSubmitted(false)
+              } finally {
+                setSubmitting(false)
+              }
             })()
           }}
           onCancel={() => {
@@ -646,6 +681,7 @@ function TreePanel({
   onRun,
   hasThreats,
   defenseCount,
+  alreadySubmittedHere,
 }: {
   tree: TreeSummary
   permit: Permit | null
@@ -654,6 +690,7 @@ function TreePanel({
   onRun: () => void
   hasThreats: boolean
   defenseCount?: number
+  alreadySubmittedHere: boolean
 }) {
   const invasive = INVASIVE_SPECIES.has(tree.species)
   const survivalRate = developer ? Math.round(developer.compliance_rate * 100) : permit?.developer_compliance_rate !== undefined
@@ -670,8 +707,12 @@ function TreePanel({
         <div className="defense-notice">
           <span className="defense-notice__icon">✓</span>
           <div>
-            <strong>{defenseCount} defense{defenseCount !== 1 ? 's' : ''} already filed</strong>
-            <p>Community advocacy is on record for this tree. Your intervention adds to the accountability pressure — filing again still matters.</p>
+            <strong>{defenseCount} defense{defenseCount !== 1 ? 's have' : ' has'} been filed</strong>
+            <p>
+              {alreadySubmittedHere
+                ? 'Your intervention is locked for this tree in this browser session. Reload the page to start a fresh action.'
+                : 'Community advocacy is on record for this tree. Your intervention adds to the accountability pressure.'}
+            </p>
           </div>
         </div>
       )}
@@ -734,9 +775,15 @@ function TreePanel({
       )}
 
       <div className="panel-action-block">
-        <p>{permit ? 'Next step: start the Day 1 intervention. The guardian will keep the future checks on schedule.' : 'Next step: choose an amber tree with an active removal permit.'}</p>
-        <button className="primary-action primary-action--wide" onClick={onRun} disabled={!permit}>
-          Start Day 1 intervention
+        <p>
+          {alreadySubmittedHere
+            ? 'This tree already has your Day 1 intervention in this session.'
+            : permit
+            ? 'Next step: start the Day 1 intervention. The guardian will keep the future checks on schedule.'
+            : 'Next step: choose an amber tree with an active removal permit.'}
+        </p>
+        <button className="primary-action primary-action--wide" onClick={onRun} disabled={!permit || alreadySubmittedHere}>
+          {alreadySubmittedHere ? 'Intervention already filed' : 'Start Day 1 intervention'}
           <ArrowIcon />
         </button>
       </div>
@@ -855,6 +902,8 @@ function _fmtDate(iso: string): string {
 }
 
 type SubmitResultShape = {
+  defense_count: number
+  notification_id: string
   guardian_schedule: { day90: string; month12: string; month36: string; year5: string }
   permit_address: string; nyc_dob_url: string; nyc_parks_email: string; maps_url: string
 }
@@ -1267,7 +1316,9 @@ function DraftPanel({
           </div>
         </div>
         {submitted && gs?.day90 && (
-          <div className="cf__guardian-active">● Intervention logged in ROOT's public accountability record — Day 90 check: {_fmtDate(gs.day90)}</div>
+          <div className="cf__guardian-active">
+            ● Intervention logged in ROOT's public accountability record — {submitResult?.defense_count ?? 1} defense{(submitResult?.defense_count ?? 1) !== 1 ? 's have' : ' has'} been filed — Day 90 check: {_fmtDate(gs.day90)}
+          </div>
         )}
       </section>
 

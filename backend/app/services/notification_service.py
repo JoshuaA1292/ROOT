@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from email.utils import parseaddr
 
 from app.db.repositories.notifications import create_notification
 
@@ -212,7 +213,44 @@ async def notify_guardian_activated(
     ecosystem_usd_yr: float,
     guardian_schedule: dict[str, str],
     recipient_email: str | None = None,
+    send_email: bool = True,
 ) -> str:
+    subject, body_text, body_html = build_guardian_activated_message(
+        address=address,
+        developer_name=developer_name,
+        compliance_rate=compliance_rate,
+        risk_tier=risk_tier,
+        tree_count=tree_count,
+        ecosystem_usd_yr=ecosystem_usd_yr,
+        guardian_schedule=guardian_schedule,
+    )
+
+    notification_id = await create_notification({
+        "type": "guardian_activated",
+        "briefing_id": briefing_id,
+        "permit_id": permit_id,
+        "address": address,
+        "subject": subject,
+        "body": body_text,
+        "tags": [risk_tier, "activated"],
+        "guardian_schedule": guardian_schedule,
+        "recipient_email": recipient_email or "",
+    })
+
+    if send_email and recipient_email:
+        await _send_email(subject, body_text, body_html, recipient_email)
+    return notification_id
+
+
+def build_guardian_activated_message(
+    address: str,
+    developer_name: str,
+    compliance_rate: float,
+    risk_tier: str,
+    tree_count: int,
+    ecosystem_usd_yr: float,
+    guardian_schedule: dict[str, str],
+) -> tuple[str, str, str]:
     pct = round(compliance_rate * 100)
     day90 = _fmt_date(guardian_schedule.get("day90", ""))
     m12 = _fmt_date(guardian_schedule.get("month12", ""))
@@ -230,22 +268,7 @@ async def notify_guardian_activated(
         address, developer_name, pct, risk_tier, tree_count, ecosystem_usd_yr,
         day90, m12, m36, y5,
     )
-
-    notification_id = await create_notification({
-        "type": "guardian_activated",
-        "briefing_id": briefing_id,
-        "permit_id": permit_id,
-        "address": address,
-        "subject": subject,
-        "body": body_text,
-        "tags": [risk_tier, "activated"],
-        "guardian_schedule": guardian_schedule,
-        "recipient_email": recipient_email or "",
-    })
-
-    if recipient_email:
-        await _send_email(subject, body_text, body_html, recipient_email)
-    return notification_id
+    return subject, body_text, body_html
 
 
 async def notify_guardian_check(
@@ -400,8 +423,9 @@ def _send_via_smtp(host: str, to: str, subject: str, text: str, html: str, setti
     port = int(getattr(settings, "smtp_port", 587))
     user = getattr(settings, "smtp_user", "")
     password = getattr(settings, "smtp_password", "")
+    sender = parseaddr(msg["From"])[1] or msg["From"]
     with smtplib.SMTP(host, port) as srv:
         srv.ehlo(); srv.starttls()
         if user and password:
             srv.login(user, password)
-        srv.sendmail(msg["From"], to, msg.as_string())
+        srv.sendmail(sender, to, msg.as_string())

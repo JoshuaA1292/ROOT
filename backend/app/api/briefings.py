@@ -47,21 +47,35 @@ async def defense_map():
     """Return tree IDs with submitted defense counts for map overlay."""
     from app.db.client import get_db
     db = get_db()
-    cursor = db.briefings.find({"status": "submitted"}, {"permit_id": 1})
-    permit_ids: list[str] = []
+    cursor = db.briefings.find(
+        {"status": "submitted"},
+        {"permit_id": 1, "guardian_emails": 1, "submitted_by_email": 1},
+    )
+    permit_counts: dict[str, int] = {}
     async for doc in cursor:
-        permit_ids.append(doc.get("permit_id", ""))
+        permit_id = doc.get("permit_id", "")
+        if not permit_id:
+            continue
+        emails = {
+            str(email).strip().lower()
+            for email in (doc.get("guardian_emails") or [])
+            if str(email).strip()
+        }
+        submitted_by = str(doc.get("submitted_by_email") or "").strip().lower()
+        if submitted_by:
+            emails.add(submitted_by)
+        permit_counts[permit_id] = permit_counts.get(permit_id, 0) + max(1, len(emails))
 
-    if not permit_ids:
+    if not permit_counts:
         return {"defenses": []}
 
     defenses: dict[str, int] = {}
-    for pid in permit_ids:
+    for pid, count in permit_counts.items():
         permit = await get_permit_by_id(pid)
         if not permit:
             continue
         for tid in permit.get("threatened_tree_ids", []):
-            defenses[tid] = defenses.get(tid, 0) + 1
+            defenses[tid] = defenses.get(tid, 0) + count
 
     return {"defenses": [{"tree_id": tid, "count": cnt} for tid, cnt in defenses.items()]}
 
@@ -260,6 +274,7 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
                 {"_id": briefing["_id"]},
                 {"$addToSet": {"guardian_emails": submitted_email}},
             )
+            briefing = await get_briefing_by_id(briefing_id) or briefing
     else:
         submitted_at = datetime.now(timezone.utc)
         guardian_schedule = {
@@ -278,14 +293,20 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
             update_fields["submitted_by_email"] = submitted_email
             update_fields["guardian_emails"] = [submitted_email]
         await update_briefing(briefing_id, update_fields)
+        briefing = await get_briefing_by_id(briefing_id) or briefing
 
     permit = await get_permit_by_id(briefing.get("permit_id", ""))
     address = permit.get("address", "") if permit else ""
     draft   = briefing.get("draft_comment", "")
 
-    # Schedule guardian-activated notification via FastAPI BackgroundTasks
-    # (guaranteed to run after the response is sent, unlike asyncio.create_task)
-    from app.services.notification_service import notify_guardian_activated
+    # Create the in-app notification before responding so the UI inbox can
+    # update immediately. The slower external email send happens in the
+    # background and logs failures without hiding the submitted state.
+    from app.services.notification_service import (
+        build_guardian_activated_message,
+        notify_guardian_activated,
+        _send_email,
+    )
 
     dev_snapshot = briefing.get("developer_snapshot") or {}
     coalition    = briefing.get("coalition_summary") or {}
@@ -300,11 +321,25 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
     else:
         risk_tier = "critical"
 
+    notification_id = await notify_guardian_activated(
+        briefing_id=briefing_id,
+        permit_id=briefing.get("permit_id", ""),
+        address=address,
+        developer_name=dev_snapshot.get("name", "Unknown Developer"),
+        compliance_rate=compliance_rate,
+        risk_tier=risk_tier,
+        tree_count=int(coalition.get("tree_count", 1)),
+        ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
+        guardian_schedule=guardian_schedule,
+        recipient_email=submitted_email or None,
+        send_email=False,
+    )
+
     async def _send_guardian_email() -> None:
+        if not submitted_email:
+            return
         try:
-            await notify_guardian_activated(
-                briefing_id=briefing_id,
-                permit_id=briefing.get("permit_id", ""),
+            subject, body_text, body_html = build_guardian_activated_message(
                 address=address,
                 developer_name=dev_snapshot.get("name", "Unknown Developer"),
                 compliance_rate=compliance_rate,
@@ -312,16 +347,28 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
                 tree_count=int(coalition.get("tree_count", 1)),
                 ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
                 guardian_schedule=guardian_schedule,
-                recipient_email=submitted_email or None,
             )
+            await _send_email(subject, body_text, body_html, submitted_email)
         except Exception as exc:
             _log.error("Guardian notification failed: %s", exc, exc_info=True)
 
     background.add_task(_send_guardian_email)
 
+    defender_emails = {
+        str(email).strip().lower()
+        for email in (briefing.get("guardian_emails") or [])
+        if str(email).strip()
+    }
+    submitted_by_email = str(briefing.get("submitted_by_email") or "").strip().lower()
+    if submitted_by_email:
+        defender_emails.add(submitted_by_email)
+    defense_count = max(1, len(defender_emails)) if briefing.get("status") == "submitted" else 1
+
     return {
         "status": "submitted",
         "briefing_id": briefing_id,
+        "defense_count": defense_count,
+        "notification_id": notification_id,
         "guardian_schedule": guardian_schedule,
         "permit_address": address,
         # Three links that actually open and do something useful:
@@ -329,5 +376,4 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
         "nyc_parks_email":  _build_parks_email_url(address, draft),
         "maps_url":         _build_maps_url(address),
     }
-
 
