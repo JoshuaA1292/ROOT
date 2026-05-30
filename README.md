@@ -225,4 +225,4 @@ ROOT/
 
 ---
 
-*Synthetic demo data. ROOT is a research and drafting tool. You review and decide what gets filed.*
+*Tree records are real public data from the NYC 2015 Street Tree Census via NYC Open Data. Permits, developers, and permit outcomes are seeded for the demo. Live ingestion endpoints exist for NYC DOB, NYC Parks ForMS, Portland, and Seattle but are not running on a schedule yet. ROOT is a research and drafting tool. You review and decide what gets filed.*
