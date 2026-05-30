@@ -353,13 +353,13 @@ async def notify_guardian_check(
 # ── Email dispatch ────────────────────────────────────────────────────────────
 
 async def _send_email(subject: str, text: str, html: str, to: str) -> bool:
-    """Send via Gmail SMTP. Reads credentials directly from os.environ."""
-    import os
+    """Send via Gmail SMTP. Runs the blocking SMTP call in a thread pool."""
+    import os, asyncio
     smtp_host = os.environ.get("SMTP_HOST", "")
     if not smtp_host:
         logger.warning("EMAIL NOT SENT to %s — SMTP_HOST not set in environment.", to)
         return False
-    _send_via_smtp(to, subject, text, html)
+    await asyncio.to_thread(_send_via_smtp, to, subject, text, html)
     logger.info("Email sent via SMTP to %s | subject: %s", to, subject)
     return True
 
