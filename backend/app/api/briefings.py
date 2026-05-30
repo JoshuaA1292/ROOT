@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote, quote_plus
 import re
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+
+_log = logging.getLogger(__name__)
 from app.db.repositories.briefings import (
     get_briefing_by_id,
     update_briefing,
@@ -227,7 +230,7 @@ def _build_parks_email_url(address: str, draft_comment: str) -> str:
 
 
 @router.post("/{briefing_id}/submit")
-async def submit_briefing(briefing_id: str, body: dict = {}):
+async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: dict = {}):
     briefing = await get_briefing_by_id(briefing_id)
     if not briefing:
         raise HTTPException(status_code=404, detail="Briefing not found")
@@ -257,43 +260,41 @@ async def submit_briefing(briefing_id: str, body: dict = {}):
 
     await update_briefing(briefing_id, update_fields)
 
-    # Fire guardian-activated notification (non-blocking)
-    import asyncio
-    import logging as _logging
-    _notify_log = _logging.getLogger(__name__)
-    try:
-        from app.services.notification_service import notify_guardian_activated
-        dev_snapshot = briefing.get("developer_snapshot") or {}
-        coalition = briefing.get("coalition_summary") or {}
+    # Schedule guardian-activated notification via FastAPI BackgroundTasks
+    # (guaranteed to run after the response is sent, unlike asyncio.create_task)
+    from app.services.notification_service import notify_guardian_activated
+
+    dev_snapshot = briefing.get("developer_snapshot") or {}
+    coalition    = briefing.get("coalition_summary") or {}
+
+    compliance_rate = float(dev_snapshot.get("compliance_rate", 0.5))
+    if compliance_rate >= 0.85:
+        risk_tier = "compliant"
+    elif compliance_rate >= 0.60:
+        risk_tier = "elevated"
+    elif compliance_rate >= 0.40:
+        risk_tier = "high"
+    else:
         risk_tier = "critical"
-        compliance_rate = float(dev_snapshot.get("compliance_rate", 0.5))
-        if compliance_rate >= 0.85:
-            risk_tier = "compliant"
-        elif compliance_rate >= 0.60:
-            risk_tier = "elevated"
-        elif compliance_rate >= 0.40:
-            risk_tier = "high"
 
-        async def _fire_notification():
-            try:
-                await notify_guardian_activated(
-                    briefing_id=briefing_id,
-                    permit_id=briefing.get("permit_id", ""),
-                    address=address,
-                    developer_name=dev_snapshot.get("name", "Unknown Developer"),
-                    compliance_rate=compliance_rate,
-                    risk_tier=risk_tier,
-                    tree_count=int(coalition.get("tree_count", 1)),
-                    ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
-                    guardian_schedule=guardian_schedule,
-                    recipient_email=submitted_email or None,
-                )
-            except Exception as exc:
-                _notify_log.error("Guardian notification failed: %s", exc, exc_info=True)
+    async def _send_guardian_email() -> None:
+        try:
+            await notify_guardian_activated(
+                briefing_id=briefing_id,
+                permit_id=briefing.get("permit_id", ""),
+                address=address,
+                developer_name=dev_snapshot.get("name", "Unknown Developer"),
+                compliance_rate=compliance_rate,
+                risk_tier=risk_tier,
+                tree_count=int(coalition.get("tree_count", 1)),
+                ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
+                guardian_schedule=guardian_schedule,
+                recipient_email=submitted_email or None,
+            )
+        except Exception as exc:
+            _log.error("Guardian notification failed: %s", exc, exc_info=True)
 
-        asyncio.create_task(_fire_notification())
-    except Exception as exc:
-        _notify_log.error("Failed to schedule guardian notification: %s", exc)
+    background.add_task(_send_guardian_email)
 
     return {
         "status": "submitted",
