@@ -440,8 +440,9 @@ def _send_via_smtp(to: str, subject: str, text: str, html: str) -> None:
     msg.attach(MIMEText(html, "html"))
 
     sender = parseaddr(from_hdr)[1] or user
-    with smtplib.SMTP(host, port) as srv:
+    with smtplib.SMTP(host, port, timeout=15) as srv:
         srv.ehlo()
         srv.starttls()
+        srv.ehlo()
         srv.login(user, password)
         srv.sendmail(sender, to, msg.as_string())

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import quote, quote_plus
 import re
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 _log = logging.getLogger(__name__)
 from app.db.repositories.briefings import (
@@ -300,7 +300,7 @@ def _build_parks_email_url(address: str, draft_comment: str) -> str:
 
 
 @router.post("/{briefing_id}/submit")
-async def submit_briefing(briefing_id: str, body: dict = {}):
+async def submit_briefing(briefing_id: str, background_tasks: BackgroundTasks, body: dict = {}):
     briefing = await get_briefing_by_id(briefing_id)
     if not briefing:
         raise HTTPException(status_code=404, detail="Briefing not found")
@@ -370,15 +370,14 @@ async def submit_briefing(briefing_id: str, body: dict = {}):
     address = permit.get("address", "") if permit else ""
     draft   = briefing.get("draft_comment", "")
 
-    # Create the in-app notification before responding so the UI inbox can
-    # update immediately. External email is attempted in-request so delivery
-    # failures are visible to the caller instead of disappearing in the
-    # background task runner.
     from app.services.notification_service import (
         build_guardian_activated_message,
         notify_guardian_activated,
         _send_email,
     )
+    from app.config import settings
+    from app.db.client import get_db
+    from bson import ObjectId
 
     dev_snapshot = briefing.get("developer_snapshot") or {}
     coalition    = briefing.get("coalition_summary") or {}
@@ -407,58 +406,47 @@ async def submit_briefing(briefing_id: str, body: dict = {}):
         send_email=False,
     )
 
-    from app.config import settings
-    from app.db.client import get_db
-    from bson import ObjectId
-
     recipients: list[str] = []
     for email in (submitted_email, getattr(settings, "notification_email", "")):
         email = str(email or "").strip()
-        if email and email.lower() not in {recipient.lower() for recipient in recipients}:
+        if email and email.lower() not in {r.lower() for r in recipients}:
             recipients.append(email)
 
-    email_sent = False
-    email_error = ""
-    email_recipients_sent: list[str] = []
-    email_recipients_failed: list[str] = []
-    if recipients:
-        try:
-            subject, body_text, body_html = build_guardian_activated_message(
-                address=address,
-                developer_name=dev_snapshot.get("name", "Unknown Developer"),
-                compliance_rate=compliance_rate,
-                risk_tier=risk_tier,
-                tree_count=int(coalition.get("tree_count", 1)),
-                ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
-                guardian_schedule=guardian_schedule,
-            )
-            for recipient in recipients:
-                try:
-                    sent = await _send_email(subject, body_text, body_html, recipient)
-                    if sent:
-                        email_recipients_sent.append(recipient)
-                    else:
-                        email_recipients_failed.append(recipient)
-                except Exception as exc:
-                    email_recipients_failed.append(recipient)
-                    _log.error("Guardian notification failed for %s: %s", recipient, exc, exc_info=True)
-            email_sent = bool(email_recipients_sent)
-            if email_recipients_failed:
-                email_error = "delivery_failed" if email_sent else "provider_not_configured"
-        finally:
+    async def _send_emails_bg(notif_id: str, recips: list[str]) -> None:
+        subject, body_text, body_html = build_guardian_activated_message(
+            address=address,
+            developer_name=dev_snapshot.get("name", "Unknown Developer"),
+            compliance_rate=compliance_rate,
+            risk_tier=risk_tier,
+            tree_count=int(coalition.get("tree_count", 1)),
+            ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
+            guardian_schedule=guardian_schedule,
+        )
+        sent_list: list[str] = []
+        failed_list: list[str] = []
+        for recip in recips:
             try:
-                db = get_db()
-                await db.notifications.update_one(
-                    {"_id": ObjectId(notification_id)},
-                    {"$set": {
-                        "email_sent": email_sent,
-                        "email_recipients": email_recipients_sent,
-                        "email_failed_recipients": email_recipients_failed,
-                        "email_error": email_error,
-                    }},
-                )
+                ok = await _send_email(subject, body_text, body_html, recip)
+                (sent_list if ok else failed_list).append(recip)
             except Exception as exc:
-                _log.warning("Could not persist email delivery status: %s", exc)
+                failed_list.append(recip)
+                _log.error("Guardian email failed for %s: %s", recip, exc, exc_info=True)
+        try:
+            db = get_db()
+            await db.notifications.update_one(
+                {"_id": ObjectId(notif_id)},
+                {"$set": {
+                    "email_sent": bool(sent_list),
+                    "email_recipients": sent_list,
+                    "email_failed_recipients": failed_list,
+                    "email_error": "" if sent_list else "delivery_failed",
+                }},
+            )
+        except Exception as exc:
+            _log.warning("Could not persist email delivery status: %s", exc)
+
+    if recipients:
+        background_tasks.add_task(_send_emails_bg, notification_id, recipients)
 
     defense_count = _defense_count_from_briefing(briefing)
 
@@ -467,8 +455,8 @@ async def submit_briefing(briefing_id: str, body: dict = {}):
         "briefing_id": briefing_id,
         "defense_count": defense_count,
         "notification_id": notification_id,
-        "email_sent": email_sent,
-        "email_error": email_error,
+        "email_sent": bool(recipients),  # will be sent in background
+        "email_error": "",
         "guardian_schedule": guardian_schedule,
         "permit_address": address,
         # Three links that actually open and do something useful:
