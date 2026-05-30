@@ -237,28 +237,51 @@ async def submit_briefing(briefing_id: str, background: BackgroundTasks, body: d
 
     submitted_email: str = body.get("email", "").strip() if body else ""
 
-    submitted_at = datetime.now(timezone.utc)
-    guardian_schedule = {
-        "day90":   (submitted_at + timedelta(days=90)).isoformat(),
-        "month12": (submitted_at + timedelta(days=365)).isoformat(),
-        "month36": (submitted_at + timedelta(days=1095)).isoformat(),
-        "year5":   (submitted_at + timedelta(days=1825)).isoformat(),
-        "next_check": "day90",
-    }
+    already_submitted = briefing.get("status") == "submitted"
+
+    if already_submitted:
+        # Reuse the original guardian schedule so all defenders share the same timeline
+        guardian_schedule = briefing.get("guardian_schedule") or {}
+        # Backfill if somehow missing
+        if not guardian_schedule:
+            submitted_at = datetime.now(timezone.utc)
+            guardian_schedule = {
+                "day90":   (submitted_at + timedelta(days=90)).isoformat(),
+                "month12": (submitted_at + timedelta(days=365)).isoformat(),
+                "month36": (submitted_at + timedelta(days=1095)).isoformat(),
+                "year5":   (submitted_at + timedelta(days=1825)).isoformat(),
+                "next_check": "day90",
+            }
+        # Add this defender's email to the list (no duplicates)
+        if submitted_email:
+            from app.db.client import get_db
+            db = get_db()
+            await db.briefings.update_one(
+                {"_id": briefing["_id"]},
+                {"$addToSet": {"guardian_emails": submitted_email}},
+            )
+    else:
+        submitted_at = datetime.now(timezone.utc)
+        guardian_schedule = {
+            "day90":   (submitted_at + timedelta(days=90)).isoformat(),
+            "month12": (submitted_at + timedelta(days=365)).isoformat(),
+            "month36": (submitted_at + timedelta(days=1095)).isoformat(),
+            "year5":   (submitted_at + timedelta(days=1825)).isoformat(),
+            "next_check": "day90",
+        }
+        update_fields: dict = {
+            "status": "submitted",
+            "submitted_at": submitted_at.isoformat(),
+            "guardian_schedule": guardian_schedule,
+        }
+        if submitted_email:
+            update_fields["submitted_by_email"] = submitted_email
+            update_fields["guardian_emails"] = [submitted_email]
+        await update_briefing(briefing_id, update_fields)
 
     permit = await get_permit_by_id(briefing.get("permit_id", ""))
     address = permit.get("address", "") if permit else ""
     draft   = briefing.get("draft_comment", "")
-
-    update_fields: dict = {
-        "status": "submitted",
-        "submitted_at": submitted_at.isoformat(),
-        "guardian_schedule": guardian_schedule,
-    }
-    if submitted_email:
-        update_fields["submitted_by_email"] = submitted_email
-
-    await update_briefing(briefing_id, update_fields)
 
     # Schedule guardian-activated notification via FastAPI BackgroundTasks
     # (guaranteed to run after the response is sent, unlike asyncio.create_task)
