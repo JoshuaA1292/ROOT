@@ -1,0 +1,46 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Briefing Tool", "version": "1.0.0" },
+  "paths": {
+    "/briefings": {
+      "post": {
+        "operationId": "createBriefing",
+        "summary": "Trigger the full briefing pipeline for a permit — coalition + precedent + Gemini draft",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["permit_id"],
+                "properties": {
+                  "permit_id": {
+                    "type": "string",
+                    "description": "The permit ID to generate a briefing for"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Briefing created and draft comment generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "briefing_id": { "type": "string" },
+                    "status": { "type": "string" },
+                    "draft_preview": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

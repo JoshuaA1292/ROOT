@@ -1,0 +1,102 @@
+[
+  {
+    "_id": "planting_permit_2021_0834",
+    "permit_id": "permit_2021_0834",
+    "developer_id": "dev_atlas_holdings",
+    "promised_count": 12,
+    "planted_count": 8,
+    "surviving_3yr_count": 4,
+    "inspection_year": 2024,
+    "status": "partial_failure"
+  },
+  {
+    "_id": "planting_permit_2022_1102",
+    "permit_id": "permit_2022_1102",
+    "developer_id": "dev_atlas_holdings",
+    "promised_count": 10,
+    "planted_count": 9,
+    "surviving_3yr_count": 5,
+    "inspection_year": 2025,
+    "status": "species_substitution_unapproved"
+  },
+  {
+    "_id": "planting_permit_2023_0477",
+    "permit_id": "permit_2023_0477",
+    "developer_id": "dev_atlas_holdings",
+    "promised_count": 9,
+    "planted_count": 7,
+    "surviving_3yr_count": 5,
+    "inspection_year": 2026,
+    "status": "late_planting"
+  },
+  {
+    "_id": "planting_permit_2020_0211",
+    "permit_id": "permit_2020_0211",
+    "developer_id": "dev_brooklyn_build",
+    "promised_count": 45,
+    "planted_count": 38,
+    "surviving_3yr_count": 25,
+    "inspection_year": 2023,
+    "status": "partial_failure"
+  },
+  {
+    "_id": "planting_permit_2021_0590",
+    "permit_id": "permit_2021_0590",
+    "developer_id": "dev_brooklyn_build",
+    "promised_count": 40,
+    "planted_count": 31,
+    "surviving_3yr_count": 23,
+    "inspection_year": 2024,
+    "status": "partial_failure"
+  },
+  {
+    "_id": "planting_permit_2022_0804",
+    "permit_id": "permit_2022_0804",
+    "developer_id": "dev_brooklyn_build",
+    "promised_count": 35,
+    "planted_count": 31,
+    "surviving_3yr_count": 24,
+    "inspection_year": 2025,
+    "status": "species_substitution_unapproved"
+  },
+  {
+    "_id": "planting_permit_2023_1340",
+    "permit_id": "permit_2023_1340",
+    "developer_id": "dev_brooklyn_build",
+    "promised_count": 36,
+    "planted_count": 30,
+    "surviving_3yr_count": 26,
+    "inspection_year": 2026,
+    "status": "late_planting"
+  },
+  {
+    "_id": "planting_permit_2023_0891",
+    "permit_id": "permit_2023_0891",
+    "developer_id": "dev_prospect_realty",
+    "promised_count": 18,
+    "planted_count": 8,
+    "surviving_3yr_count": 6,
+    "inspection_year": 2026,
+    "status": "partial_failure"
+  },
+  {
+    "_id": "planting_permit_greenpoint_001",
+    "permit_id": "permit_2024_0315",
+    "developer_id": "dev_greenpoint_dev",
+    "promised_count": 84,
+    "planted_count": 84,
+    "surviving_3yr_count": 79,
+    "inspection_year": 2026,
+    "status": "verified"
+  },
+  {
+    "_id": "planting_permit_midtown_001",
+    "permit_id": "permit_2024_0189",
+    "developer_id": "dev_midtown_partners",
+    "promised_count": 60,
+    "planted_count": 60,
+    "surviving_3yr_count": 57,
+    "inspection_year": 2026,
+    "status": "verified"
+  }
+]

@@ -1,0 +1,44 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Coalition Tool", "version": "1.0.0" },
+  "paths": {
+    "/permits/{permit_id}/coalition": {
+      "get": {
+        "operationId": "getCoalition",
+        "summary": "Get threatened tree coalition and aggregate ecosystem values for a permit",
+        "parameters": [
+          {
+            "name": "permit_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "The permit ID to analyze (e.g. permit_2026_0184)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coalition impact summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tree_count": { "type": "integer" },
+                    "canopy_sqft": { "type": "number" },
+                    "stormwater_gal_yr": { "type": "number" },
+                    "co2_lbs_lifetime": { "type": "number" },
+                    "cooling_usd_yr": { "type": "number" },
+                    "total_ecosystem_usd_yr": { "type": "number" },
+                    "ej_tier": { "type": "string", "enum": ["High", "Medium", "Low"] },
+                    "heat_vulnerable_residents": { "type": "integer" },
+                    "tree_ids": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,154 @@
+[
+  {
+    "_id": "dev_atlas_holdings",
+    "name": "Atlas Holdings LLC",
+    "permits_filed": 3,
+    "promised_replacements": 31,
+    "verified_surviving": 14,
+    "compliance_rate": 0.45,
+    "violations": [
+      { "permit_id": "permit_2021_0834", "type": "missing_replacement", "count": 8, "year": 2021 },
+      { "permit_id": "permit_2022_1102", "type": "species_substitution_unapproved", "count": 5, "year": 2022 },
+      { "permit_id": "permit_2023_0477", "type": "late_planting", "count": 4, "year": 2023 }
+    ],
+    "linked_entities": ["Atlas Realty Corp", "AH Development NY", "Atlantic Heights Partners"],
+    "last_audit": "2024-11-14"
+  },
+  {
+    "_id": "dev_prospect_realty",
+    "name": "Prospect Realty Ventures",
+    "permits_filed": 2,
+    "promised_replacements": 18,
+    "verified_surviving": 6,
+    "compliance_rate": 0.33,
+    "violations": [
+      { "permit_id": "permit_2023_0891", "type": "missing_replacement", "count": 12, "year": 2023 }
+    ],
+    "linked_entities": ["PRV Holdings"],
+    "last_audit": "2024-09-05"
+  },
+  {
+    "_id": "dev_brooklyn_build",
+    "name": "Brooklyn Build & Trade Co.",
+    "permits_filed": 12,
+    "promised_replacements": 156,
+    "verified_surviving": 98,
+    "compliance_rate": 0.63,
+    "violations": [
+      { "permit_id": "permit_2020_0211", "type": "missing_replacement", "count": 12, "year": 2020 },
+      { "permit_id": "permit_2021_0590", "type": "missing_replacement", "count": 18, "year": 2021 },
+      { "permit_id": "permit_2022_0804", "type": "species_substitution_unapproved", "count": 8, "year": 2022 },
+      { "permit_id": "permit_2023_1340", "type": "late_planting", "count": 20, "year": 2023 }
+    ],
+    "linked_entities": ["BK Build Corp", "Trade Line Developers"],
+    "last_audit": "2025-03-22"
+  },
+  {
+    "_id": "dev_greenpoint_dev",
+    "name": "Greenpoint Development Group",
+    "permits_filed": 7,
+    "promised_replacements": 84,
+    "verified_surviving": 79,
+    "compliance_rate": 0.94,
+    "violations": [],
+    "linked_entities": ["GPD Residential LLC"],
+    "last_audit": "2025-01-08"
+  },
+  {
+    "_id": "dev_midtown_partners",
+    "name": "Midtown Partners Group",
+    "permits_filed": 5,
+    "promised_replacements": 60,
+    "verified_surviving": 57,
+    "compliance_rate": 0.95,
+    "violations": [],
+    "linked_entities": ["MPG Commercial LLC"],
+    "last_audit": "2025-02-10"
+  },
+  {
+    "_id": "dev_sunset_park",
+    "name": "Sunset Park Development Corp",
+    "permits_filed": 3,
+    "promised_replacements": 28,
+    "verified_surviving": 8,
+    "compliance_rate": 0.28,
+    "violations": [
+      { "permit_id": "permit_2022_0331", "type": "missing_replacement", "count": 11, "year": 2022 },
+      { "permit_id": "permit_2023_0715", "type": "missing_replacement", "count": 7, "year": 2023 },
+      { "permit_id": "permit_2023_1210", "type": "species_substitution_unapproved", "count": 2, "year": 2023 }
+    ],
+    "linked_entities": ["SP Dev Partners", "Sunset Realty NY", "4th Ave Holdings"],
+    "last_audit": "2025-01-20"
+  },
+  {
+    "_id": "dev_crown_heights",
+    "name": "Crown Heights Capital Partners",
+    "permits_filed": 4,
+    "promised_replacements": 46,
+    "verified_surviving": 24,
+    "compliance_rate": 0.52,
+    "violations": [
+      { "permit_id": "permit_2021_0412", "type": "missing_replacement", "count": 9, "year": 2021 },
+      { "permit_id": "permit_2022_0889", "type": "late_planting", "count": 8, "year": 2022 },
+      { "permit_id": "permit_2023_0244", "type": "missing_replacement", "count": 5, "year": 2023 }
+    ],
+    "linked_entities": ["CHCP LLC", "Eastern Crown Development"],
+    "last_audit": "2024-12-01"
+  },
+  {
+    "_id": "dev_flatbush_props",
+    "name": "Flatbush Properties LLC",
+    "permits_filed": 8,
+    "promised_replacements": 92,
+    "verified_surviving": 65,
+    "compliance_rate": 0.71,
+    "violations": [
+      { "permit_id": "permit_2020_0678", "type": "late_planting", "count": 6, "year": 2020 },
+      { "permit_id": "permit_2022_1034", "type": "missing_replacement", "count": 14, "year": 2022 },
+      { "permit_id": "permit_2023_0590", "type": "species_substitution_unapproved", "count": 7, "year": 2023 }
+    ],
+    "linked_entities": ["FP Development Group", "Flatbush Ave Partners"],
+    "last_audit": "2025-02-28"
+  },
+  {
+    "_id": "dev_park_slope",
+    "name": "Park Slope Builders Inc",
+    "permits_filed": 6,
+    "promised_replacements": 72,
+    "verified_surviving": 64,
+    "compliance_rate": 0.88,
+    "violations": [
+      { "permit_id": "permit_2021_0923", "type": "late_planting", "count": 4, "year": 2021 }
+    ],
+    "linked_entities": ["PS Construction LLC"],
+    "last_audit": "2025-03-10"
+  },
+  {
+    "_id": "dev_williamsburg_heights",
+    "name": "Williamsburg Heights Group",
+    "permits_filed": 9,
+    "promised_replacements": 108,
+    "verified_surviving": 98,
+    "compliance_rate": 0.91,
+    "violations": [
+      { "permit_id": "permit_2021_0167", "type": "late_planting", "count": 6, "year": 2021 },
+      { "permit_id": "permit_2022_0451", "type": "species_substitution_unapproved", "count": 4, "year": 2022 }
+    ],
+    "linked_entities": ["WHG Residential LLC", "North Brooklyn Partners"],
+    "last_audit": "2025-01-15"
+  },
+  {
+    "_id": "dev_bk_urban",
+    "name": "BK Urban Ventures",
+    "permits_filed": 5,
+    "promised_replacements": 55,
+    "verified_surviving": 42,
+    "compliance_rate": 0.76,
+    "violations": [
+      { "permit_id": "permit_2022_0990", "type": "missing_replacement", "count": 8, "year": 2022 },
+      { "permit_id": "permit_2023_0318", "type": "late_planting", "count": 5, "year": 2023 }
+    ],
+    "linked_entities": ["BK Urban LLC"],
+    "last_audit": "2025-04-01"
+  }
+]

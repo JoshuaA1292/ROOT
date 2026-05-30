@@ -1,0 +1,87 @@
+[
+  {
+    "_id": "permit_2026_0184",
+    "developer_id": "dev_atlas_holdings",
+    "filed_date": "2026-04-22",
+    "address": "487 Atlantic Ave, Brooklyn, NY 11217",
+    "project_type": "mixed_use_tower",
+    "removal_radius_m": 80,
+    "center": {
+      "type": "Point",
+      "coordinates": [-73.9845, 40.6862]
+    },
+    "stated_reason": "Foundation excavation and soil remediation required for 14-story mixed-use development. Root systems of adjacent trees incompatible with below-grade parking structure.",
+    "promised_replacements": 12,
+    "comment_deadline": "2026-06-25",
+    "status": "open_for_comment",
+    "threatened_tree_ids": []
+  },
+  {
+    "_id": "permit_2026_0211",
+    "developer_id": "dev_brooklyn_build",
+    "filed_date": "2026-05-01",
+    "address": "1240 Fulton St, Brooklyn, NY 11216",
+    "project_type": "commercial_renovation",
+    "removal_radius_m": 40,
+    "center": {
+      "type": "Point",
+      "coordinates": [-73.9491, 40.6803]
+    },
+    "stated_reason": "Loading dock expansion requires removal of three trees obstructing commercial vehicle access.",
+    "promised_replacements": 5,
+    "comment_deadline": "2026-06-28",
+    "status": "open_for_comment",
+    "threatened_tree_ids": []
+  },
+  {
+    "_id": "permit_2026_0099",
+    "developer_id": "dev_prospect_realty",
+    "filed_date": "2026-03-15",
+    "address": "220 Prospect Park West, Brooklyn, NY 11215",
+    "project_type": "residential_tower",
+    "removal_radius_m": 60,
+    "center": {
+      "type": "Point",
+      "coordinates": [-73.9771, 40.6591]
+    },
+    "stated_reason": "Residential development requires removal of trees along property boundary. Replacement planting plan submitted.",
+    "promised_replacements": 8,
+    "comment_deadline": "2026-06-10",
+    "status": "open_for_comment",
+    "threatened_tree_ids": []
+  },
+  {
+    "_id": "permit_2026_0047",
+    "developer_id": "dev_midtown_partners",
+    "filed_date": "2026-02-28",
+    "address": "344 W 34th St, Manhattan, NY 10001",
+    "project_type": "office_renovation",
+    "removal_radius_m": 30,
+    "center": {
+      "type": "Point",
+      "coordinates": [-73.9960, 40.7492]
+    },
+    "stated_reason": "Sidewalk reconstruction and utility work require temporary removal of two street trees.",
+    "promised_replacements": 4,
+    "comment_deadline": "2026-05-30",
+    "status": "closed",
+    "threatened_tree_ids": []
+  },
+  {
+    "_id": "permit_2026_0312",
+    "developer_id": "dev_greenpoint_dev",
+    "filed_date": "2026-05-10",
+    "address": "85 Commercial St, Brooklyn, NY 11222",
+    "project_type": "mixed_use_residential",
+    "removal_radius_m": 50,
+    "center": {
+      "type": "Point",
+      "coordinates": [-73.9535, 40.7286]
+    },
+    "stated_reason": "New construction on vacant lot. Two adjacent street trees require removal per DOT requirements.",
+    "promised_replacements": 6,
+    "comment_deadline": "2026-07-01",
+    "status": "open_for_comment",
+    "threatened_tree_ids": []
+  }
+]

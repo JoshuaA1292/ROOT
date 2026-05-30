@@ -1,0 +1,156 @@
+[
+  {
+    "permit_id": "permit_2021_0834",
+    "developer_id": "dev_atlas_holdings",
+    "promised_count": 10,
+    "planted_count": 4,
+    "surviving_3yr_count": 2,
+    "inspection_year": 2024,
+    "status": "partial_failure",
+    "notes": "6 of 10 trees never planted. 2 of 4 planted trees died within 18 months. No GPS records submitted.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2022_1102",
+    "developer_id": "dev_atlas_holdings",
+    "promised_count": 12,
+    "planted_count": 9,
+    "surviving_3yr_count": 7,
+    "inspection_year": 2024,
+    "status": "species_substitution_unapproved",
+    "notes": "Species substituted from Red Maple to invasive Norway Maple without Parks approval.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2023_0891",
+    "developer_id": "dev_prospect_realty",
+    "promised_count": 18,
+    "planted_count": 7,
+    "surviving_3yr_count": 6,
+    "inspection_year": 2025,
+    "status": "partial_failure",
+    "notes": "11 of 18 trees never planted. No surety bond was in place. Developer unreachable for follow-up.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2022_0331",
+    "developer_id": "dev_sunset_park",
+    "promised_count": 12,
+    "planted_count": 3,
+    "surviving_3yr_count": 1,
+    "inspection_year": 2025,
+    "status": "critical_failure",
+    "notes": "9 of 12 trees not planted. 2 planted died within 1 year. Developer used 3 separate LLCs to obscure record.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2023_0715",
+    "developer_id": "dev_sunset_park",
+    "promised_count": 8,
+    "planted_count": 4,
+    "surviving_3yr_count": 4,
+    "inspection_year": 2025,
+    "status": "partial_failure",
+    "notes": "4 of 8 promised trees never planted. Planted trees survive but below target count.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2020_0211",
+    "developer_id": "dev_brooklyn_build",
+    "promised_count": 18,
+    "planted_count": 10,
+    "surviving_3yr_count": 6,
+    "inspection_year": 2023,
+    "status": "partial_failure",
+    "notes": "8 trees never planted. Replacement survival below 85% threshold. No corrective action taken.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2021_0590",
+    "developer_id": "dev_brooklyn_build",
+    "promised_count": 22,
+    "planted_count": 16,
+    "surviving_3yr_count": 12,
+    "inspection_year": 2024,
+    "status": "partial_failure",
+    "notes": "6 trees never planted. Survival rate below city standard. Late planting in winter months.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2021_0412",
+    "developer_id": "dev_crown_heights",
+    "promised_count": 14,
+    "planted_count": 8,
+    "surviving_3yr_count": 5,
+    "inspection_year": 2024,
+    "status": "partial_failure",
+    "notes": "6 trees missing. Developer claimed 'site conditions' precluded planting but never filed amended plan.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2022_0889",
+    "developer_id": "dev_crown_heights",
+    "promised_count": 16,
+    "planted_count": 12,
+    "surviving_3yr_count": 11,
+    "inspection_year": 2025,
+    "status": "late_compliance",
+    "notes": "Trees planted 14 months after deadline. All survive but late planting reduces ecosystem services window.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2020_0678",
+    "developer_id": "dev_flatbush_props",
+    "promised_count": 14,
+    "planted_count": 11,
+    "surviving_3yr_count": 8,
+    "inspection_year": 2023,
+    "status": "partial_failure",
+    "notes": "3 trees not planted. Winter planting led to reduced survival. Parks issued informal notice.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2022_1034",
+    "developer_id": "dev_flatbush_props",
+    "promised_count": 20,
+    "planted_count": 12,
+    "surviving_3yr_count": 11,
+    "inspection_year": 2025,
+    "status": "partial_failure",
+    "notes": "8 trees never planted. Developer filed amended plan reducing count, not approved by Parks.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2021_0923",
+    "developer_id": "dev_park_slope",
+    "promised_count": 12,
+    "planted_count": 12,
+    "surviving_3yr_count": 11,
+    "inspection_year": 2024,
+    "status": "late_compliance",
+    "notes": "All trees eventually planted but 8 months late. Survival rate 92%. GPS records submitted.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2021_0167",
+    "developer_id": "dev_williamsburg_heights",
+    "promised_count": 14,
+    "planted_count": 14,
+    "surviving_3yr_count": 12,
+    "inspection_year": 2024,
+    "status": "late_compliance",
+    "notes": "All trees planted 4 months late but full count achieved. Species match approved list.",
+    "inspector": "NYC Parks ForMS"
+  },
+  {
+    "permit_id": "permit_2022_0990",
+    "developer_id": "dev_bk_urban",
+    "promised_count": 14,
+    "planted_count": 9,
+    "surviving_3yr_count": 9,
+    "inspection_year": 2025,
+    "status": "partial_failure",
+    "notes": "5 trees not planted. Surviving trees healthy. Developer committed to making up deficit in next permit.",
+    "inspector": "NYC Parks ForMS"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "_id": "policy_local_law_11_2014",
+    "jurisdiction": "NYC",
+    "title": "Local Law 11 of 2014 — Tree Preservation and Replacement",
+    "section": "NYC Administrative Code § 18-107",
+    "text_excerpt": "No tree having a diameter of two and one-half inches or more measured at a point four and one-half feet above the ground shall be cut down, removed, or substantially damaged without prior written approval of the commissioner. For every tree removed, the applicant shall plant a replacement tree of a species and in a location approved by the department.",
+    "tags": ["replacement_ratio", "diameter_threshold", "commissioner_approval"]
+  },
+  {
+    "_id": "policy_parks_rule_1_04",
+    "jurisdiction": "NYC",
+    "title": "NYC Parks Rule 1-04 — Street Tree Standards",
+    "section": "56 RCNY § 1-04",
+    "text_excerpt": "Replacement trees must be of a species on the approved street tree species list, planted within the same Community District where possible, and verified alive by an approved arborist at 12 months post-planting. Applicants with documented replacement survival rates below 85% over the preceding 5 years may be required to post a performance bond.",
+    "tags": ["replacement_ratio", "survival_rate", "performance_bond", "arborist_verification"]
+  },
+  {
+    "_id": "policy_onenyc_2050_canopy",
+    "jurisdiction": "NYC",
+    "title": "OneNYC 2050 — Urban Forest Strategy",
+    "section": "Strategy 6: A Greener, Greater New York",
+    "text_excerpt": "New York City commits to achieving 30% canopy coverage citywide by 2035. Street tree removal permits that result in net canopy loss in census tracts with below-average canopy coverage must demonstrate exceptional public benefit. Mitigation requirements include enhanced replacement ratios of up to 3:1 in heat-vulnerable neighborhoods.",
+    "tags": ["canopy_target", "30_percent_by_2035", "replacement_ratio", "heat_vulnerable_neighborhoods"]
+  },
+  {
+    "_id": "policy_planyc_heat_resilience",
+    "jurisdiction": "NYC",
+    "title": "PlaNYC Heat Resilience Plan 2024",
+    "section": "Chapter 4: Green Infrastructure and Canopy",
+    "text_excerpt": "Urban tree canopy is a primary defense against extreme heat mortality in high-density neighborhoods. Census tracts scoring above the 75th percentile on the NYC Office of Environmental Remediation Heat Vulnerability Index should be treated as priority preservation zones. Tree removal permits in these zones require an enhanced environmental review.",
+    "tags": ["heat_vulnerability", "priority_preservation", "environmental_review", "ej_score"]
+  },
+  {
+    "_id": "policy_nyc_climate_mobilization_2019",
+    "jurisdiction": "NYC",
+    "title": "NYC Climate Mobilization Act (Int. 1253-A)",
+    "section": "Part III: Natural Carbon Sequestration",
+    "text_excerpt": "The City of New York recognizes urban trees as critical carbon sequestration infrastructure. Permit applications that result in material reduction of the city's carbon sequestration capacity must quantify the carbon impact in CO₂-equivalent terms and propose equivalent offset measures.",
+    "tags": ["carbon_sequestration", "co2_offset", "climate_mobilization"]
+  }
+]

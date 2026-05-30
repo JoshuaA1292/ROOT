@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+out/
+.vercel/
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.pem
+gcp-service-account.json
+
+# Data
+data/raw/*.csv
+data/raw/*.json
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log

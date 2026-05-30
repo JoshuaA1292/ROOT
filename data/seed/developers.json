@@ -1,0 +1,68 @@
+[
+  {
+    "_id": "dev_atlas_holdings",
+    "name": "Atlas Holdings LLC",
+    "permits_filed": 3,
+    "promised_replacements": 31,
+    "verified_surviving": 14,
+    "compliance_rate": 0.45,
+    "violations": [
+      { "permit_id": "permit_2021_0834", "type": "missing_replacement", "count": 8, "year": 2021 },
+      { "permit_id": "permit_2022_1102", "type": "species_substitution_unapproved", "count": 5, "year": 2022 },
+      { "permit_id": "permit_2023_0477", "type": "late_planting", "count": 4, "year": 2023 }
+    ],
+    "linked_entities": ["Atlas Realty Corp", "AH Development NY", "Atlantic Heights Partners"],
+    "last_audit": "2024-11-14"
+  },
+  {
+    "_id": "dev_greenpoint_dev",
+    "name": "Greenpoint Development Group",
+    "permits_filed": 7,
+    "promised_replacements": 84,
+    "verified_surviving": 79,
+    "compliance_rate": 0.94,
+    "violations": [],
+    "linked_entities": ["GPD Residential LLC"],
+    "last_audit": "2025-01-08"
+  },
+  {
+    "_id": "dev_brooklyn_build",
+    "name": "Brooklyn Build & Trade Co.",
+    "permits_filed": 12,
+    "promised_replacements": 156,
+    "verified_surviving": 98,
+    "compliance_rate": 0.63,
+    "violations": [
+      { "permit_id": "permit_2020_0211", "type": "missing_replacement", "count": 12, "year": 2020 },
+      { "permit_id": "permit_2021_0590", "type": "missing_replacement", "count": 18, "year": 2021 },
+      { "permit_id": "permit_2022_0804", "type": "species_substitution_unapproved", "count": 8, "year": 2022 },
+      { "permit_id": "permit_2023_1340", "type": "late_planting", "count": 20, "year": 2023 }
+    ],
+    "linked_entities": ["BK Build Corp", "Trade Line Developers"],
+    "last_audit": "2025-03-22"
+  },
+  {
+    "_id": "dev_midtown_partners",
+    "name": "Midtown Partners Group",
+    "permits_filed": 5,
+    "promised_replacements": 60,
+    "verified_surviving": 57,
+    "compliance_rate": 0.95,
+    "violations": [],
+    "linked_entities": ["MPG Commercial LLC"],
+    "last_audit": "2025-02-10"
+  },
+  {
+    "_id": "dev_prospect_realty",
+    "name": "Prospect Realty Ventures",
+    "permits_filed": 2,
+    "promised_replacements": 18,
+    "verified_surviving": 6,
+    "compliance_rate": 0.33,
+    "violations": [
+      { "permit_id": "permit_2023_0891", "type": "missing_replacement", "count": 12, "year": 2023 }
+    ],
+    "linked_entities": ["PRV Holdings"],
+    "last_audit": "2024-09-05"
+  }
+]

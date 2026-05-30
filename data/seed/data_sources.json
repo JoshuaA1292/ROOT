@@ -1,0 +1,75 @@
+[
+  {
+    "_id": "nyc_street_tree_census_2015",
+    "name": "NYC 2015 Street Tree Census",
+    "publisher": "NYC Parks & Recreation",
+    "dataset_id": "uvpi-gqnh",
+    "dataset_url": "https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/uvpi-gqnh",
+    "api_url": "https://data.cityofnewyork.us/resource/uvpi-gqnh.json",
+    "license": "NYC Open Data — Public Domain",
+    "coverage": "All 5 NYC boroughs (Brooklyn, Manhattan, Queens, Bronx, Staten Island)",
+    "record_count": 683788,
+    "used_for": "Tree identity, location (GPS), diameter at breast height (DBH), health status, species",
+    "notes": "The 2015 census was conducted by 2,000+ volunteers coordinated by NYC Parks & Recreation. It is the authoritative source for NYC street tree positions and species. ROOT uses this dataset to identify every tree threatened by a removal permit."
+  },
+  {
+    "_id": "usda_itree_eco",
+    "name": "USDA i-Tree Eco — NYC Ecosystem Valuation",
+    "publisher": "USDA Forest Service",
+    "dataset_url": "https://www.itreetools.org/tools/itree-eco",
+    "license": "Public domain / USDA open access",
+    "used_for": "Annual ecosystem service valuations: stormwater interception (gal/yr), CO₂ storage (lbs/yr), cooling energy (kWh/yr), air quality improvement (USD/yr)",
+    "methodology": "Per-inch-DBH annual benefit coefficients for NYC's Humid Subtropical climate zone, updated with 2024 NYC utility pricing. Stormwater: $0.14/gal (NYC DEP green infrastructure avoided-cost value). CO₂: $0.045/lb ($100/ton, EPA 2023 interim social cost of carbon). Electricity: $0.22/kWh (NYC ConEd avg residential, 2024). Air quality: $3.20/inch-DBH-year (PM2.5 + O₃ + NO₂, NYC 2023).",
+    "notes": "Coefficients derived from published USDA i-Tree research for the NYC metro region. All figures are annual averages — actual values vary by species, site, and growing conditions."
+  },
+  {
+    "_id": "epa_ejscreen",
+    "name": "EPA EJScreen — Environmental Justice Screening Tool",
+    "publisher": "U.S. Environmental Protection Agency",
+    "dataset_url": "https://www.epa.gov/ejscreen",
+    "api_url": "https://ejscreen.epa.gov/mapper/ejscreenRESTbroker.aspx",
+    "license": "U.S. Government Work — Public Domain",
+    "used_for": "Heat vulnerability percentile scores by census tract. ROOT uses these scores to flag tree removal permits in Environmental Justice communities where urban heat island impacts are highest.",
+    "notes": "EJScreen indexes include PM2.5, ozone, toxic releases, and heat vulnerability. ROOT surfaces the heat vulnerability index (HVEI) which is especially relevant for tree canopy loss."
+  },
+  {
+    "_id": "nyc_dob_job_filings",
+    "name": "NYC Department of Buildings — Job Filings",
+    "publisher": "NYC Department of Buildings",
+    "dataset_id": "ic3t-wcy2",
+    "dataset_url": "https://data.cityofnewyork.us/Housing-Development/DOB-Job-Application-Filings/ic3t-wcy2",
+    "api_url": "https://data.cityofnewyork.us/resource/ic3t-wcy2.json",
+    "license": "NYC Open Data — Public Domain",
+    "used_for": "New building and alteration permits. ROOT cross-references DOB job filings with NYC Parks tree work permits to identify cases where construction projects threaten street trees.",
+    "notes": "Job types A2 (major alteration) and NB (new building) are the most common triggers for tree removal. ROOT focuses on permits within the tree pit buffer zone."
+  },
+  {
+    "_id": "nyc_parks_tree_work",
+    "name": "NYC Parks — Tree Work Orders",
+    "publisher": "NYC Parks & Recreation",
+    "dataset_id": "5rq2-4hqu",
+    "dataset_url": "https://data.cityofnewyork.us/Recreation/Forestry-Tree-Work-Requests/5rq2-4hqu",
+    "api_url": "https://data.cityofnewyork.us/resource/5rq2-4hqu.json",
+    "license": "NYC Open Data — Public Domain",
+    "used_for": "Tree removal work orders and planting inspection records. ROOT queries this dataset during the 12-month and 36-month follow-up checks to verify whether replacement trees were actually planted and survived.",
+    "notes": "The ForMS (Forestry Management System) is the authoritative Parks database for tree work. ROOT uses the public extract to check replacement planting status."
+  },
+  {
+    "_id": "nyc_admin_code_18_107",
+    "name": "NYC Administrative Code § 18-107",
+    "publisher": "NYC Council",
+    "dataset_url": "https://codelibrary.amlegal.com/codes/newyorkcity/latest/NYCadmin/0-0-0-30551",
+    "license": "Public law",
+    "used_for": "Legal citation in public comments. § 18-107 governs street tree protections and replacement requirements for construction projects in NYC.",
+    "notes": "Requires developers to obtain a permit and provide replacement trees for any street tree removed. ROOT cites this code in generated public comments to ground the intervention in existing law."
+  },
+  {
+    "_id": "onenyc_2050_canopy_target",
+    "name": "OneNYC 2050 — 30% Urban Tree Canopy Target",
+    "publisher": "NYC Mayor's Office of Long-Term Planning and Sustainability",
+    "dataset_url": "https://onenyc.cityofnewyork.us/initiatives/a-livable-climate/",
+    "license": "Public policy",
+    "used_for": "Policy benchmark cited in ROOT's impact calculations and public comments. NYC committed to increasing urban tree canopy cover to 30% by 2035 under the OneNYC 2050 plan.",
+    "notes": "As of 2020, NYC canopy cover was approximately 22%. The 30% target requires net tree gain, making developer replacement compliance a key policy instrument."
+  }
+]

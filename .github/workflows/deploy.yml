@@ -1,0 +1,94 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  SERVICE: root-backend
+  IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/root-backend
+
+jobs:
+  # ── Backend → Google Cloud Run ─────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy backend to Cloud Run
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push Docker image
+        run: |
+          gcloud builds submit ./backend \
+            --tag="${{ env.IMAGE }}:${{ github.sha }}" \
+            --tag="${{ env.IMAGE }}:latest" \
+            --project="${{ env.PROJECT_ID }}"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image="${{ env.IMAGE }}:${{ github.sha }}" \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --allow-unauthenticated \
+            --min-instances=1 \
+            --max-instances=5 \
+            --memory=1Gi \
+            --cpu=2 \
+            --set-env-vars="GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},GOOGLE_CLOUD_LOCATION=${{ env.REGION }}" \
+            --set-secrets="MONGODB_URI=mongodb-uri:latest" \
+            --service-account="root-backend-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com" \
+            --project="${{ env.PROJECT_ID }}"
+
+      - name: Get Cloud Run URL
+        id: cloudrun-url
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE }} \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --format="value(status.url)" \
+            --project="${{ env.PROJECT_ID }}")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Backend deployed: $URL"
+
+  # ── Frontend → Vercel (via CLI) ────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy frontend to Vercel
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment
+        working-directory: frontend
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build project
+        working-directory: frontend
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        working-directory: frontend
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

@@ -1,0 +1,83 @@
+# Google Cloud Agent Builder — ROOT Orchestrator Agent
+# Deploy via: gcloud agent-builder agents create (see deploy.sh)
+#
+# This agent orchestrates five specialist tools:
+#   1. coalition_tool   — MongoDB geospatial query + ecosystem aggregation
+#   2. developer_tool   — replacement survival ledger
+#   3. precedent_tool   — Atlas Vector Search RAG
+#   4. policy_tool      — city canopy, heat, carbon, and replacement rules
+#   5. briefing_tool    — Gemini synthesis of all data into a public comment
+
+displayName: "ROOT Urban Tree Intelligence Orchestrator"
+description: >
+  Orchestrates the coalition, precedent, and briefing agents to produce a
+  legally-grounded public comment for urban tree removal permits.
+
+model: gemini-2.0-flash-001
+
+tools:
+  - toolType: OPEN_API
+    name: coalition_tool
+    description: >
+      Finds all trees within the permit's impact radius using MongoDB geospatial
+      queries. Returns the combined ecosystem values (stormwater, carbon, cooling)
+      and environmental justice tier for the threatened tree coalition.
+    openApiSpec:
+      $ref: "./tool_schemas/coalition.json"
+
+  - toolType: OPEN_API
+    name: developer_tool
+    description: >
+      Retrieves the developer accountability ledger for the permit applicant,
+      including promised replacements, verified survivors, violations, and
+      survival-rate delta against the city target.
+    openApiSpec:
+      $ref: "./tool_schemas/developer.json"
+
+  - toolType: OPEN_API
+    name: precedent_tool
+    description: >
+      Searches for semantically similar prior permit cases using Atlas Vector Search.
+      Returns precedent cases where similar arguments succeeded in public comment,
+      ranked by semantic similarity to the current permit context.
+    openApiSpec:
+      $ref: "./tool_schemas/precedent.json"
+
+  - toolType: OPEN_API
+    name: policy_tool
+    description: >
+      Retrieves city policy references relevant to the permit impact, including
+      canopy coverage targets, heat-vulnerability review rules, carbon impacts,
+      replacement survival benchmarks, and performance-bond conditions.
+    openApiSpec:
+      $ref: "./tool_schemas/policy.json"
+
+  - toolType: OPEN_API
+    name: briefing_tool
+    description: >
+      Synthesizes coalition data, developer compliance history, and precedent cases
+      into a complete public comment draft using Gemini. Returns structured markdown
+      with citations.
+    openApiSpec:
+      $ref: "./tool_schemas/briefing.json"
+
+# MCP server connection for direct MongoDB access
+mcpServers:
+  - name: mongodb
+    uri: "${MCP_SERVER_URI}"
+    description: "MongoDB Atlas MCP server — direct access to ROOT corpus"
+
+systemInstruction: |
+  You are ROOT's orchestration agent. When given a permit_id, you MUST:
+  1. Call coalition_tool with the permit_id to identify threatened trees and aggregate ecosystem values
+  2. Call developer_tool with the permit_id to retrieve the applicant's replacement survival ledger
+  3. Call precedent_tool with the permit context and coalition summary to find relevant prior cases
+  4. Call policy_tool with the coalition impact and developer ledger to retrieve applicable city rules
+  5. Call briefing_tool with all gathered data to produce the final public comment draft
+
+  Always run all five tools. Never skip a step. The human steward will review and submit the output.
+  You are the research department. The human is the voice.
+
+generationConfig:
+  temperature: 0.2
+  maxOutputTokens: 8192

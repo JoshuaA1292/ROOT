@@ -1,0 +1,17 @@
+{
+  "_id": "permit_test_001",
+  "developer_id": "dev_atlas_holdings",
+  "filed_date": "2026-05-01",
+  "address": "487 Atlantic Ave, Brooklyn, NY 11217",
+  "project_type": "mixed_use_tower",
+  "removal_radius_m": 80,
+  "center": {
+    "type": "Point",
+    "coordinates": [-73.9845, 40.6862]
+  },
+  "stated_reason": "Foundation excavation required.",
+  "promised_replacements": 12,
+  "comment_deadline": "2026-06-25",
+  "status": "open_for_comment",
+  "threatened_tree_ids": []
+}

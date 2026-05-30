@@ -1,0 +1,57 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Precedent Tool", "version": "1.0.0" },
+  "paths": {
+    "/precedents/search": {
+      "post": {
+        "operationId": "searchPrecedents",
+        "summary": "Find semantically similar prior permit cases via Atlas Vector Search",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["permit_context"],
+                "properties": {
+                  "permit_context": {
+                    "type": "string",
+                    "description": "Natural language description of the permit: address, project type, removal reason, coalition impact, EJ tier"
+                  },
+                  "top_k": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "Number of precedents to return"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of relevant precedent cases ranked by similarity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "title": { "type": "string" },
+                      "outcome": { "type": "string" },
+                      "year": { "type": "integer" },
+                      "similarity_score": { "type": "number" },
+                      "arguments_used": { "type": "array", "items": { "type": "string" } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

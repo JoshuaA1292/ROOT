@@ -1,0 +1,36 @@
+# Cloud Scheduler jobs for ROOT production automation.
+# Replace ${REGION}, ${PROJECT_ID}, ${SERVICE_URL}, and ${SCHEDULER_SERVICE_ACCOUNT}
+# during deployment.
+
+jobs:
+  - name: root-briefing-resume
+    description: Resume queued or failed briefing jobs after service restarts.
+    schedule: "*/5 * * * *"
+    timeZone: "America/New_York"
+    uri: "${SERVICE_URL}/jobs/briefings/resume?limit=25"
+    httpMethod: POST
+    oidcServiceAccountEmail: "${SCHEDULER_SERVICE_ACCOUNT}"
+
+  - name: root-guardian-check
+    description: Find submitted briefings with overdue Day-90/Month-12/Month-36/Year-5 checks and queue re-analysis.
+    schedule: "0 9 * * *"
+    timeZone: "America/New_York"
+    uri: "${SERVICE_URL}/jobs/guardian/check?limit=50"
+    httpMethod: POST
+    oidcServiceAccountEmail: "${SCHEDULER_SERVICE_ACCOUNT}"
+
+  - name: root-nyc-dob-permit-ingest
+    description: Pull recent NYC DOB tree-work permit filings into ROOT.
+    schedule: "*/15 * * * *"
+    timeZone: "America/New_York"
+    uri: "${SERVICE_URL}/permits/ingest"
+    httpMethod: POST
+    oidcServiceAccountEmail: "${SCHEDULER_SERVICE_ACCOUNT}"
+
+  - name: root-parks-planting-ingest
+    description: Pull Parks planting/inspection records and reconcile developer ledgers.
+    schedule: "0 */6 * * *"
+    timeZone: "America/New_York"
+    uri: "${SERVICE_URL}/developers/planting-records/ingest"
+    httpMethod: POST
+    oidcServiceAccountEmail: "${SCHEDULER_SERVICE_ACCOUNT}"

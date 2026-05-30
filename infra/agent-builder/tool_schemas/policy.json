@@ -1,0 +1,49 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Policy Reference Tool", "version": "1.0.0" },
+  "paths": {
+    "/policies/match": {
+      "post": {
+        "operationId": "matchPolicies",
+        "summary": "Get city policy references relevant to a permit analysis",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["coalition_summary", "developer_ledger"],
+                "properties": {
+                  "coalition_summary": { "type": "object" },
+                  "developer_ledger": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Matched policy references",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "title": { "type": "string" },
+                      "section": { "type": "string" },
+                      "text_excerpt": { "type": "string" },
+                      "matched_tags": { "type": "array", "items": { "type": "string" } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION}
+      - CORS_ORIGINS=http://localhost:3000
+    volumes:
+      - ./backend/app:/app/app    # hot reload in dev
+      - ${GOOGLE_APPLICATION_CREDENTIALS:-/dev/null}:/app/gcp-key.json:ro
+    restart: unless-stopped
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_MAPBOX_TOKEN=${NEXT_PUBLIC_MAPBOX_TOKEN}
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - backend
+
+  # MongoDB MCP server (for Agent Builder integration)
+  mcp:
+    image: node:20-alpine
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DB:-root_trees}
+    command: sh -c "npx -y @mongodb-js/mongodb-mcp-server"
+    ports:
+      - "3100:3100"
