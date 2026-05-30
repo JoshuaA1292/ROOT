@@ -359,6 +359,18 @@ async def _send_email(subject: str, text: str, html: str, to: str) -> bool:
     resend_key = os.environ.get("RESEND_API_KEY", "")
     smtp_host  = os.environ.get("SMTP_HOST", "")
 
+    mailjet_key = os.environ.get("MAILJET_API_KEY", "")
+    mailjet_secret = os.environ.get("MAILJET_SECRET_KEY", "")
+    if mailjet_key and mailjet_secret:
+        logger.info("EMAIL ATTEMPT via Mailjet to=%s", to)
+        try:
+            await _send_via_mailjet(mailjet_key, mailjet_secret, to, subject, html, text)
+            logger.info("EMAIL SENT OK via Mailjet to=%s", to)
+            return True
+        except Exception as exc:
+            logger.error("EMAIL FAILED via Mailjet to=%s: %s", to, exc, exc_info=True)
+            return False
+
     if brevo_key:
         logger.info("EMAIL ATTEMPT via Brevo to=%s", to)
         try:
@@ -417,6 +429,26 @@ async def send_test_email(to: str) -> dict:
     except Exception as exc:
         import traceback
         return {"ok": False, "provider": provider, "error": str(exc), "traceback": traceback.format_exc()}
+
+
+async def _send_via_mailjet(api_key: str, secret: str, to: str, subject: str, html: str, text: str) -> None:
+    import httpx, os, base64
+    sender_email = os.environ.get("SMTP_USER", "rootfortrees4l@gmail.com")
+    token = base64.b64encode(f"{api_key}:{secret}".encode()).decode()
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.post(
+            "https://api.mailjet.com/v3.1/send",
+            headers={"Authorization": f"Basic {token}", "Content-Type": "application/json"},
+            json={"Messages": [{
+                "From":     {"Email": sender_email, "Name": "ROOT Guardian"},
+                "To":       [{"Email": to}],
+                "Subject":  subject,
+                "HTMLPart": html,
+                "TextPart": text,
+            }]},
+        )
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(f"Mailjet {resp.status_code}: {resp.text}")
 
 
 async def _send_via_brevo(api_key: str, to: str, subject: str, html: str, text: str) -> None:

@@ -22,6 +22,10 @@ services:
         sync: false
       - key: GEMINI_MODEL
         value: gemini-2.0-flash
+      - key: MAILJET_API_KEY
+        sync: false
+      - key: MAILJET_SECRET_KEY
+        sync: false
       - key: BREVO_API_KEY
         sync: false
       - key: RESEND_API_KEY
