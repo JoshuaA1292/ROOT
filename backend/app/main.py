@@ -32,13 +32,19 @@ from app.api import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.services.guardian_scheduler import create_scheduler
-    scheduler = create_scheduler()
-    scheduler.start()
+    scheduler = None
+    try:
+        from app.services.guardian_scheduler import create_scheduler
+        scheduler = create_scheduler()
+        scheduler.start()
+    except Exception as _sched_err:
+        import logging
+        logging.getLogger(__name__).warning("Guardian scheduler not started: %s", _sched_err)
     try:
         yield
     finally:
-        scheduler.shutdown(wait=False)
+        if scheduler:
+            scheduler.shutdown(wait=False)
         await close_client()
 
 

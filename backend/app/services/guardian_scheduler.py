@@ -9,7 +9,10 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+except ImportError:
+    AsyncIOScheduler = None  # type: ignore[assignment,misc]
 
 logger = logging.getLogger(__name__)
 
@@ -123,8 +126,9 @@ async def _process_briefing(db, doc: dict, now_iso: str) -> None:
     await db.briefings.update_one({"_id": doc["_id"]}, update)
 
 
-def create_scheduler() -> AsyncIOScheduler:
+def create_scheduler():
+    if AsyncIOScheduler is None:
+        raise ImportError("apscheduler is not installed")
     scheduler = AsyncIOScheduler(timezone="UTC")
-    # Run at the top of every hour
     scheduler.add_job(run_guardian_checks, "interval", hours=1, id="guardian_checks", replace_existing=True)
     return scheduler
