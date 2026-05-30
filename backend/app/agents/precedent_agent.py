@@ -2,9 +2,12 @@
 Precedent Agent: embeds the permit context and retrieves semantically similar
 prior cases from the precedents collection via Atlas Vector Search.
 """
+import logging
 from app.services.embeddings import embed_text
 from app.db.repositories.precedents import vector_search_precedents
 from app.models.briefing import PrecedentRef
+
+logger = logging.getLogger(__name__)
 
 
 def _build_query_text(permit: dict, coalition_summary: dict) -> str:
@@ -20,8 +23,17 @@ def _build_query_text(permit: dict, coalition_summary: dict) -> str:
 
 async def run(permit: dict, coalition_summary: dict, top_k: int = 5) -> list[PrecedentRef]:
     query_text = _build_query_text(permit, coalition_summary)
-    embedding = embed_text(query_text)
-    raw_results = await vector_search_precedents(embedding, top_k=top_k)
+    try:
+        embedding = embed_text(query_text)
+    except Exception as exc:
+        logger.warning("Precedent embedding failed (%s) — skipping vector search.", exc)
+        return []
+
+    try:
+        raw_results = await vector_search_precedents(embedding, top_k=top_k)
+    except Exception as exc:
+        logger.warning("Vector search failed (%s) — skipping precedents.", exc)
+        return []
 
     return [
         PrecedentRef(

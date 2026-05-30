@@ -416,6 +416,10 @@ export default function MapPage() {
           }).catch(() => {})
         }
 
+        if (evt.event === 'error') {
+          es.close()
+        }
+
         if (evt.event === 'done') {
           es.close()
           // Final fetch — ensures the complete briefing (with strategy) is in state.
@@ -844,8 +848,12 @@ function RunningPanel({
           const data = event.data as Record<string, unknown>
           const label = event.event === 'atlas_read'
             ? `MongoDB Atlas ${data.op as string} ${data.collection as string}`
+            : event.event === 'error'
+            ? `Error: ${data.message as string}`
+            : event.event === 'warning'
+            ? `⚠ ${data.message as string}`
             : EVENT_LABEL[event.event] ?? event.event
-          return <p key={`${event.event}-${index}`}>{label}</p>
+          return <p key={`${event.event}-${index}`} className={event.event === 'error' ? 'is-error' : event.event === 'warning' ? 'is-warning' : ''}>{label}</p>
         })}
       </div>
     </div>
