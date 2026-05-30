@@ -295,8 +295,18 @@ async def notify_guardian_check(
     body_html = _html_guardian_check(address, label, audit_report, next_label, next_date)
 
     from app.db.repositories.briefings import get_briefing_by_id
+    from app.config import settings
+    from app.db.client import get_db
+    from bson import ObjectId
+
     briefing_doc = await get_briefing_by_id(briefing_id)
     stored_email = briefing_doc.get("submitted_by_email", "") if briefing_doc else ""
+    recipients: list[str] = []
+    if briefing_doc:
+        for email in [stored_email, *(briefing_doc.get("guardian_emails") or []), settings.notification_email]:
+            email = str(email or "").strip()
+            if email and email.lower() not in {recipient.lower() for recipient in recipients}:
+                recipients.append(email)
 
     notification_id = await create_notification({
         "type": f"guardian_{step}",
@@ -308,10 +318,35 @@ async def notify_guardian_check(
         "tags": [step, "audit"],
         "step": step,
         "recipient_email": stored_email,
+        "recipient_emails": recipients,
     })
 
-    if stored_email:
-        await _send_email(subject, body_text, body_html, stored_email)
+    sent_recipients: list[str] = []
+    failed_recipients: list[str] = []
+    for recipient in recipients:
+        try:
+            if await _send_email(subject, body_text, body_html, recipient):
+                sent_recipients.append(recipient)
+            else:
+                failed_recipients.append(recipient)
+        except Exception as exc:
+            failed_recipients.append(recipient)
+            logger.error("Guardian check email failed for %s: %s", recipient, exc, exc_info=True)
+
+    if recipients:
+        try:
+            db = get_db()
+            await db.notifications.update_one(
+                {"_id": ObjectId(notification_id)},
+                {"$set": {
+                    "email_sent": bool(sent_recipients),
+                    "email_recipients": sent_recipients,
+                    "email_failed_recipients": failed_recipients,
+                    "email_error": "delivery_failed" if failed_recipients else "",
+                }},
+            )
+        except Exception as exc:
+            logger.warning("Could not persist check email delivery status: %s", exc)
     return notification_id
 
 

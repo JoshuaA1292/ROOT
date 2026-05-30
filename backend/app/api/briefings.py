@@ -407,9 +407,21 @@ async def submit_briefing(briefing_id: str, body: dict = {}):
         send_email=False,
     )
 
+    from app.config import settings
+    from app.db.client import get_db
+    from bson import ObjectId
+
+    recipients: list[str] = []
+    for email in (submitted_email, getattr(settings, "notification_email", "")):
+        email = str(email or "").strip()
+        if email and email.lower() not in {recipient.lower() for recipient in recipients}:
+            recipients.append(email)
+
     email_sent = False
     email_error = ""
-    if submitted_email:
+    email_recipients_sent: list[str] = []
+    email_recipients_failed: list[str] = []
+    if recipients:
         try:
             subject, body_text, body_html = build_guardian_activated_message(
                 address=address,
@@ -420,12 +432,33 @@ async def submit_briefing(briefing_id: str, body: dict = {}):
                 ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
                 guardian_schedule=guardian_schedule,
             )
-            email_sent = await _send_email(subject, body_text, body_html, submitted_email)
-            if not email_sent:
-                email_error = "provider_not_configured"
-        except Exception as exc:
-            email_error = "delivery_failed"
-            _log.error("Guardian notification failed: %s", exc, exc_info=True)
+            for recipient in recipients:
+                try:
+                    sent = await _send_email(subject, body_text, body_html, recipient)
+                    if sent:
+                        email_recipients_sent.append(recipient)
+                    else:
+                        email_recipients_failed.append(recipient)
+                except Exception as exc:
+                    email_recipients_failed.append(recipient)
+                    _log.error("Guardian notification failed for %s: %s", recipient, exc, exc_info=True)
+            email_sent = bool(email_recipients_sent)
+            if email_recipients_failed:
+                email_error = "delivery_failed" if email_sent else "provider_not_configured"
+        finally:
+            try:
+                db = get_db()
+                await db.notifications.update_one(
+                    {"_id": ObjectId(notification_id)},
+                    {"$set": {
+                        "email_sent": email_sent,
+                        "email_recipients": email_recipients_sent,
+                        "email_failed_recipients": email_recipients_failed,
+                        "email_error": email_error,
+                    }},
+                )
+            except Exception as exc:
+                _log.warning("Could not persist email delivery status: %s", exc)
 
     defense_count = _defense_count_from_briefing(briefing)
 
