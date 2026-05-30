@@ -167,21 +167,22 @@ function pickPermitForTree(tree: TreeSummary, permits: Permit[]) {
 function usePermitData() {
   const [permits, setPermits] = useState<Permit[]>([])
   const [threatenedIds, setThreatenedIds] = useState<Set<string>>(new Set())
-  const [firstPermit, setFirstPermit] = useState<Permit | null>(null)
+  const [threatenedPermits, setThreatenedPermits] = useState<Permit[]>([])
 
   useEffect(() => {
     api.permits.list().then(data => {
       setPermits(data)
       setThreatenedIds(new Set(data.flatMap(p => p.threatened_tree_ids)))
-      setFirstPermit(data.find(p => (p.threatened_tree_ids?.length ?? 0) > 0) ?? data[0] ?? null)
+      setThreatenedPermits(data.filter(p => (p.threatened_tree_ids?.length ?? 0) > 0))
     }).catch(() => {})
   }, [])
 
-  return { permits, threatenedIds, firstPermit }
+  return { permits, threatenedIds, threatenedPermits }
 }
 
 export default function MapPage() {
-  const { permits, threatenedIds, firstPermit } = usePermitData()
+  const { permits, threatenedIds, threatenedPermits } = usePermitData()
+  const jumpIndexRef = useRef(0)
   const [selectedTree, setSelectedTree] = useState<TreeSummary | null>(null)
   const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null)
   const [panel, setPanel] = useState<PanelState>('closed')
@@ -286,10 +287,43 @@ export default function MapPage() {
     }
   }, [permits, resetWorkflow])
 
-  const jumpToFirstThreat = useCallback(() => {
-    if (!firstPermit?.center?.coordinates) return
-    mapFlyToRef.current?.(firstPermit.center.coordinates[0], firstPermit.center.coordinates[1])
-  }, [firstPermit])
+  const jumpToNextThreat = useCallback(async () => {
+    const pool = threatenedPermits.length > 0 ? threatenedPermits : permits
+    if (pool.length === 0) return
+
+    const permit = pool[jumpIndexRef.current % pool.length]
+    jumpIndexRef.current += 1
+
+    if (permit.center?.coordinates) {
+      mapFlyToRef.current?.(permit.center.coordinates[0], permit.center.coordinates[1])
+    }
+
+    // Auto-open the case panel for the first threatened tree on this permit
+    const treeId = permit.threatened_tree_ids?.[0]
+    if (treeId) {
+      try {
+        const full = await api.trees.get(treeId)
+        const summary: TreeSummary = {
+          id: full.id,
+          species: full.species?.common ?? (full.species as unknown as string),
+          lng: full.location?.coordinates?.[0] ?? 0,
+          lat: full.location?.coordinates?.[1] ?? 0,
+          health: full.health,
+          ecosystem_total_usd: full.ecosystem_value_usd_yr?.total_usd ?? 0,
+          diameter_in: full.diameter_in,
+        }
+        setSelectedTree(summary)
+        setSelectedPermit(permit)
+        setPanel('tree')
+        resetWorkflow()
+        if (permit.developer_id) {
+          api.developers.get(permit.developer_id).then(setDeveloper).catch(() => {})
+        }
+      } catch {
+        // fly-to still happened; user can click a tree manually
+      }
+    }
+  }, [threatenedPermits, permits, resetWorkflow])
 
   const closePanel = useCallback(() => {
     setPanel('closed')
@@ -421,9 +455,9 @@ export default function MapPage() {
           <span>ROOT</span>
         </Link>
         <div className="header-actions">
-          <button className="chip-button chip-button--alert" onClick={jumpToFirstThreat} disabled={threatCount === 0}>
+          <button className="chip-button chip-button--alert" onClick={jumpToNextThreat} disabled={permits.length === 0}>
             <span className="pulse-dot" />
-            {threatCount > 0 ? `${threatCount} threatened trees` : 'No active permits loaded'}
+            {threatCount > 0 ? `${threatCount} threatened trees` : permits.length > 0 ? 'Active permits loaded' : 'No permits loaded'}
           </button>
           <button
             className="chip-button"
@@ -469,7 +503,7 @@ export default function MapPage() {
             <span>Start Day 1 action</span>
           </div>
         </div>
-        <button className="primary-action" onClick={jumpToFirstThreat} disabled={threatCount === 0}>
+        <button className="primary-action" onClick={jumpToNextThreat} disabled={permits.length === 0}>
           Activate a guardian case
           <ArrowIcon />
         </button>
