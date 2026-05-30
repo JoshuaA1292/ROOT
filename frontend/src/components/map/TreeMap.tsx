@@ -59,9 +59,12 @@ function canopyRadius(dbh: number | undefined): number {
   return Math.max(3.2, diameter * 0.23)
 }
 
-function viewToBbox(view: MapViewState, pad = 0.02): string {
+function viewToBbox(view: MapViewState): string {
   const lng = view.longitude ?? INITIAL_VIEW.longitude
   const lat = view.latitude ?? INITIAL_VIEW.latitude
+  const zoom = view.zoom ?? 16
+  // Scale the fetch window with zoom: at zoom 16 pad≈0.02°, doubles every zoom step down
+  const pad = Math.min(1.8, 0.02 * Math.pow(2, Math.max(0, 16 - zoom)))
   return `${lng - pad},${lat - pad * 0.75},${lng + pad},${lat + pad * 0.75}`
 }
 

@@ -8,7 +8,7 @@ async def get_tree_by_id(tree_id: str) -> dict | None:
 
 
 async def get_trees_in_bbox(
-    lng1: float, lat1: float, lng2: float, lat2: float, limit: int = 500
+    lng1: float, lat1: float, lng2: float, lat2: float, limit: int = 2000
 ) -> list[dict]:
     db = get_db()
     cursor = db.trees.find(

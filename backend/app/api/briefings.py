@@ -258,6 +258,9 @@ async def submit_briefing(briefing_id: str, body: dict = {}):
     await update_briefing(briefing_id, update_fields)
 
     # Fire guardian-activated notification (non-blocking)
+    import asyncio
+    import logging as _logging
+    _notify_log = _logging.getLogger(__name__)
     try:
         from app.services.notification_service import notify_guardian_activated
         dev_snapshot = briefing.get("developer_snapshot") or {}
@@ -270,21 +273,27 @@ async def submit_briefing(briefing_id: str, body: dict = {}):
             risk_tier = "elevated"
         elif compliance_rate >= 0.40:
             risk_tier = "high"
-        import asyncio
-        asyncio.create_task(notify_guardian_activated(
-            briefing_id=briefing_id,
-            permit_id=briefing.get("permit_id", ""),
-            address=address,
-            developer_name=dev_snapshot.get("name", "Unknown Developer"),
-            compliance_rate=compliance_rate,
-            risk_tier=risk_tier,
-            tree_count=int(coalition.get("tree_count", 1)),
-            ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
-            guardian_schedule=guardian_schedule,
-            recipient_email=submitted_email or None,
-        ))
-    except Exception:
-        pass
+
+        async def _fire_notification():
+            try:
+                await notify_guardian_activated(
+                    briefing_id=briefing_id,
+                    permit_id=briefing.get("permit_id", ""),
+                    address=address,
+                    developer_name=dev_snapshot.get("name", "Unknown Developer"),
+                    compliance_rate=compliance_rate,
+                    risk_tier=risk_tier,
+                    tree_count=int(coalition.get("tree_count", 1)),
+                    ecosystem_usd_yr=float(coalition.get("total_ecosystem_usd_yr", 0)),
+                    guardian_schedule=guardian_schedule,
+                    recipient_email=submitted_email or None,
+                )
+            except Exception as exc:
+                _notify_log.error("Guardian notification failed: %s", exc, exc_info=True)
+
+        asyncio.create_task(_fire_notification())
+    except Exception as exc:
+        _notify_log.error("Failed to schedule guardian notification: %s", exc)
 
     return {
         "status": "submitted",

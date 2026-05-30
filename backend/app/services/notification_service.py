@@ -358,13 +358,36 @@ async def send_test_email(to: str) -> dict:
 
 async def _send_via_resend(api_key: str, to: str, subject: str, html: str, text: str) -> None:
     import httpx
+    from app.config import settings
     from_addr = "ROOT Guardian <onboarding@resend.dev>"
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={"from": from_addr, "to": [to], "subject": subject, "html": html, "text": text},
         )
+
+        if resp.status_code == 403:
+            # Resend sandbox: can only deliver to the account owner.
+            # Fall back to the configured notification_email so the demo still works.
+            fallback = settings.notification_email
+            if not fallback:
+                logger.warning(
+                    "Resend sandbox rejected %s (domain not verified). "
+                    "Set NOTIFICATION_EMAIL in backend/.env to receive guardian emails.", to
+                )
+                return
+            fallback_subject = f"{subject} [→ {to}]"
+            resp2 = await client.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"from": from_addr, "to": [fallback], "subject": fallback_subject, "html": html, "text": text},
+            )
+            resp2.raise_for_status()
+            logger.info("Email delivered via sandbox fallback to %s (intended: %s)", fallback, to)
+            return
+
         resp.raise_for_status()
 
 

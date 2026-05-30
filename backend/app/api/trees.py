@@ -20,7 +20,10 @@ async def list_trees(
         raise HTTPException(status_code=400, detail="bbox must be lng1,lat1,lng2,lat2")
 
     lng1, lat1, lng2, lat2 = parts
-    trees = await get_trees_in_bbox(lng1, lat1, lng2, lat2)
+    # Scale limit with bbox size so zoomed-out views get enough trees
+    bbox_area = (lng2 - lng1) * (lat2 - lat1)
+    limit = min(3000, max(500, int(bbox_area * 8000)))
+    trees = await get_trees_in_bbox(lng1, lat1, lng2, lat2, limit=limit)
     # Flatten for frontend
     return [
         {
