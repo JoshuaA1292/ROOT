@@ -353,10 +353,21 @@ async def notify_guardian_check(
 # ── Email dispatch ────────────────────────────────────────────────────────────
 
 async def _send_email(subject: str, text: str, html: str, to: str) -> bool:
-    """Send via Resend API (production) or SMTP (local fallback)."""
+    """Send via Brevo API → Resend API → SMTP (local fallback)."""
     import os, asyncio
+    brevo_key  = os.environ.get("BREVO_API_KEY", "")
     resend_key = os.environ.get("RESEND_API_KEY", "")
     smtp_host  = os.environ.get("SMTP_HOST", "")
+
+    if brevo_key:
+        logger.info("EMAIL ATTEMPT via Brevo to=%s", to)
+        try:
+            await _send_via_brevo(brevo_key, to, subject, html, text)
+            logger.info("EMAIL SENT OK via Brevo to=%s", to)
+            return True
+        except Exception as exc:
+            logger.error("EMAIL FAILED via Brevo to=%s: %s", to, exc, exc_info=True)
+            return False
 
     if resend_key:
         logger.info("EMAIL ATTEMPT via Resend to=%s", to)
@@ -378,7 +389,7 @@ async def _send_email(subject: str, text: str, html: str, to: str) -> bool:
             logger.error("EMAIL FAILED via SMTP to=%s: %s", to, exc, exc_info=True)
             return False
 
-    logger.error("EMAIL NOT SENT — set RESEND_API_KEY (production) or SMTP_HOST (local) in env vars.")
+    logger.error("EMAIL NOT SENT — set BREVO_API_KEY in Render env vars.")
     return False
 
 
@@ -406,6 +417,25 @@ async def send_test_email(to: str) -> dict:
     except Exception as exc:
         import traceback
         return {"ok": False, "provider": provider, "error": str(exc), "traceback": traceback.format_exc()}
+
+
+async def _send_via_brevo(api_key: str, to: str, subject: str, html: str, text: str) -> None:
+    import httpx, os
+    sender_email = os.environ.get("SMTP_USER", "rootfortrees4l@gmail.com")
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={"api-key": api_key, "Content-Type": "application/json"},
+            json={
+                "sender":      {"name": "ROOT Guardian", "email": sender_email},
+                "to":          [{"email": to}],
+                "subject":     subject,
+                "htmlContent": html,
+                "textContent": text,
+            },
+        )
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(f"Brevo {resp.status_code}: {resp.text}")
 
 
 async def _send_via_resend(api_key: str, to: str, subject: str, html: str, text: str) -> None:
