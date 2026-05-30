@@ -347,24 +347,14 @@ export default function MapPage() {
       bid = result.briefing_id
       setBriefingId(bid)
 
-      // Permit was already submitted in a previous session — restore that state.
+      // Permit already has a submitted briefing — show the case file but keep
+      // the submit button open so this person can add their own defense.
       if (result.status === 'already_submitted' && result.briefing) {
         const b = result.briefing as import('@/lib/types').Briefing
         setBriefing(b)
         if (b.draft_comment) setDraft(b.draft_comment)
-        setSubmitted(true)
+        setSubmitted(false)   // leave submit button visible
         setPanel('draft')
-        // Rebuild submitResult from the stored briefing data so links are shown.
-        if (b.guardian_schedule) {
-          const gs = b.guardian_schedule as Record<string, string>
-          setSubmitResult({
-            guardian_schedule: { day90: gs.day90, month12: gs.month12, month36: gs.month36, year5: gs.year5 },
-            permit_address: selectedPermit.address,
-            nyc_dob_url: '',   // will be regenerated on next fresh submit
-            nyc_parks_email: `mailto:UrbanForestry@parks.nyc.gov?subject=${encodeURIComponent('Public Comment — Tree Removal Permit: ' + selectedPermit.address)}`,
-            maps_url: '',
-          })
-        }
         return
       }
     } catch {
@@ -1330,6 +1320,11 @@ function DraftPanel({
         </div>
       ) : (
         <div className="cf__submit">
+          {briefing?.guardian_emails && briefing.guardian_emails.length > 0 && (
+            <div className="cf__prior-defenses">
+              ✓ {briefing.guardian_emails.length} defender{briefing.guardian_emails.length !== 1 ? 's' : ''} already watching this permit — add your defense below.
+            </div>
+          )}
           <p className="cf__submit-hint">
             Review the comment above, then publish to ROOT&apos;s accountability record.
             You&apos;ll receive email updates as the guardian checks run.
@@ -1340,7 +1335,7 @@ function DraftPanel({
             onClick={() => onRequestSubmit()}
           >
             <SendIcon />
-            {submitting ? 'Publishing…' : 'Publish Day 1 intervention'}
+            {submitting ? 'Publishing…' : briefing?.status === 'submitted' ? 'Add your defense' : 'Publish Day 1 intervention'}
           </button>
         </div>
       )}

@@ -131,6 +131,7 @@ export interface Briefing {
   status: 'draft' | 'edited' | 'reviewed' | 'exported' | 'submitted'
   reviewed_by_email?: string
   guardian_schedule?: Record<string, string>
+  guardian_emails?: string[]
   intervention_strategy?: {
     recommended_action: string
     confidence: 'High' | 'Medium' | 'Low'
