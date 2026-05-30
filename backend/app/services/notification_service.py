@@ -295,28 +295,27 @@ async def notify_guardian_check(
 # ── Email dispatch ────────────────────────────────────────────────────────────
 
 async def _send_email(subject: str, text: str, html: str, to: str) -> None:
-    """Try Resend first, fall back to SMTP. Raises on failure so callers can log."""
+    """Try Gmail SMTP first (sends to anyone), fall back to Resend."""
     from app.config import settings
 
-    resend_key = getattr(settings, "resend_api_key", "")
     smtp_host = getattr(settings, "smtp_host", "")
+    resend_key = getattr(settings, "resend_api_key", "")
 
-    if not resend_key and not smtp_host:
+    if not smtp_host and not resend_key:
         logger.warning(
             "EMAIL NOT SENT to %s — no provider configured. "
-            "Set RESEND_API_KEY in backend/.env (free at resend.com) "
-            "or configure SMTP_HOST/SMTP_USER/SMTP_PASSWORD.",
+            "Set SMTP_HOST/SMTP_USER/SMTP_PASSWORD in backend/.env.",
             to,
         )
         return
 
-    if resend_key:
-        await _send_via_resend(resend_key, to, subject, html, text)
-        logger.info("Email sent via Resend to %s | subject: %s", to, subject)
+    if smtp_host:
+        _send_via_smtp(smtp_host, to, subject, text, html, settings)
+        logger.info("Email sent via SMTP to %s | subject: %s", to, subject)
         return
 
-    _send_via_smtp(smtp_host, to, subject, text, html, settings)
-    logger.info("Email sent via SMTP to %s | subject: %s", to, subject)
+    await _send_via_resend(resend_key, to, subject, html, text)
+    logger.info("Email sent via Resend to %s | subject: %s", to, subject)
 
 
 async def send_test_email(to: str) -> dict:
@@ -326,14 +325,11 @@ async def send_test_email(to: str) -> dict:
     resend_key = getattr(settings, "resend_api_key", "")
     smtp_host = getattr(settings, "smtp_host", "")
 
-    if not resend_key and not smtp_host:
+    if not smtp_host and not resend_key:
         return {
             "ok": False,
             "provider": "none",
-            "error": (
-                "No email provider configured. "
-                "Add RESEND_API_KEY to backend/.env — free account at resend.com takes 2 minutes."
-            ),
+            "error": "No email provider configured. Set SMTP_HOST/SMTP_USER/SMTP_PASSWORD in backend/.env.",
         }
 
     subject = "[ROOT] Email test — guardian system active"
@@ -347,13 +343,13 @@ async def send_test_email(to: str) -> dict:
 </div></body></html>"""
 
     try:
-        if resend_key:
-            await _send_via_resend(resend_key, to, subject, html, text)
-            return {"ok": True, "provider": "resend", "to": to}
-        _send_via_smtp(smtp_host, to, subject, text, html, settings)
-        return {"ok": True, "provider": "smtp", "to": to}
+        if smtp_host:
+            _send_via_smtp(smtp_host, to, subject, text, html, settings)
+            return {"ok": True, "provider": "smtp", "to": to}
+        await _send_via_resend(resend_key, to, subject, html, text)
+        return {"ok": True, "provider": "resend", "to": to}
     except Exception as exc:
-        return {"ok": False, "provider": "resend" if resend_key else "smtp", "error": str(exc)}
+        return {"ok": False, "provider": "smtp" if smtp_host else "resend", "error": str(exc)}
 
 
 async def _send_via_resend(api_key: str, to: str, subject: str, html: str, text: str) -> None:
