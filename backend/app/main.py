@@ -1,4 +1,11 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env from backend/ regardless of where the server is started from
+_env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(_env_path, override=False)
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

@@ -353,62 +353,37 @@ async def notify_guardian_check(
 # ── Email dispatch ────────────────────────────────────────────────────────────
 
 async def _send_email(subject: str, text: str, html: str, to: str) -> bool:
-    """Try Gmail SMTP first (sends to anyone), fall back to Resend."""
-    from app.config import settings
-
-    smtp_host = getattr(settings, "smtp_host", "")
-    resend_key = getattr(settings, "resend_api_key", "")
-
-    if not smtp_host and not resend_key:
-        logger.warning(
-            "EMAIL NOT SENT to %s — no provider configured. "
-            "Set SMTP_HOST/SMTP_USER/SMTP_PASSWORD in backend/.env.",
-            to,
-        )
+    """Send via Gmail SMTP. Reads credentials directly from os.environ."""
+    import os
+    smtp_host = os.environ.get("SMTP_HOST", "")
+    if not smtp_host:
+        logger.warning("EMAIL NOT SENT to %s — SMTP_HOST not set in environment.", to)
         return False
-
-    if smtp_host:
-        _send_via_smtp(smtp_host, to, subject, text, html, settings)
-        logger.info("Email sent via SMTP to %s | subject: %s", to, subject)
-        return True
-
-    await _send_via_resend(resend_key, to, subject, html, text)
-    logger.info("Email sent via Resend to %s | subject: %s", to, subject)
+    _send_via_smtp(to, subject, text, html)
+    logger.info("Email sent via SMTP to %s | subject: %s", to, subject)
     return True
 
 
 async def send_test_email(to: str) -> dict:
     """Send a test email and return status. Used by /admin/test-email."""
-    from app.config import settings
-
-    resend_key = getattr(settings, "resend_api_key", "")
-    smtp_host = getattr(settings, "smtp_host", "")
-
-    if not smtp_host and not resend_key:
-        return {
-            "ok": False,
-            "provider": "none",
-            "error": "No email provider configured. Set SMTP_HOST/SMTP_USER/SMTP_PASSWORD in backend/.env.",
-        }
-
+    import os
+    if not os.environ.get("SMTP_HOST"):
+        return {"ok": False, "provider": "none",
+                "error": "SMTP_HOST not set. Add SMTP_HOST/SMTP_USER/SMTP_PASSWORD to backend/.env."}
     subject = "[ROOT] Email test — guardian system active"
-    text = "This is a test email from the ROOT Guardian System. If you received this, email delivery is working."
+    text = "ROOT Guardian email test — SMTP is working."
     html = """<!DOCTYPE html><html><body style="background:#0a0a0a;font-family:-apple-system,sans-serif;padding:40px 20px">
 <div style="max-width:480px;margin:0 auto;background:#111;border:1px solid #222;border-radius:6px;padding:32px">
   <div style="font-size:18px;font-weight:800;letter-spacing:0.1em;color:#fff;font-family:'Courier New',monospace;margin-bottom:20px">ROOT</div>
   <div style="display:inline-block;background:#16a34a;color:#fff;font-size:9px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;padding:4px 10px;border-radius:2px;margin-bottom:16px">● System active</div>
-  <p style="color:#ccc;font-size:13px;line-height:1.7;margin:0">Email delivery is working. ROOT Guardian System is configured and ready to send guardian notifications.</p>
+  <p style="color:#ccc;font-size:13px;line-height:1.7;margin:0">Email delivery confirmed via Gmail SMTP.</p>
   <p style="color:#444;font-size:10px;margin:20px 0 0;font-family:'Courier New',monospace">— ROOT Guardian System</p>
 </div></body></html>"""
-
     try:
-        if smtp_host:
-            _send_via_smtp(smtp_host, to, subject, text, html, settings)
-            return {"ok": True, "provider": "smtp", "to": to}
-        await _send_via_resend(resend_key, to, subject, html, text)
-        return {"ok": True, "provider": "resend", "to": to}
+        _send_via_smtp(to, subject, text, html)
+        return {"ok": True, "provider": "smtp", "to": to}
     except Exception as exc:
-        return {"ok": False, "provider": "smtp" if smtp_host else "resend", "error": str(exc)}
+        return {"ok": False, "provider": "smtp", "error": str(exc)}
 
 
 async def _send_via_resend(api_key: str, to: str, subject: str, html: str, text: str) -> None:
@@ -446,22 +421,27 @@ async def _send_via_resend(api_key: str, to: str, subject: str, html: str, text:
         resp.raise_for_status()
 
 
-def _send_via_smtp(host: str, to: str, subject: str, text: str, html: str, settings) -> None:
-    import smtplib
+def _send_via_smtp(to: str, subject: str, text: str, html: str) -> None:
+    import os, smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
+
+    host     = os.environ["SMTP_HOST"]
+    port     = int(os.environ.get("SMTP_PORT", "587"))
+    user     = os.environ.get("SMTP_USER", "")
+    password = os.environ.get("SMTP_PASSWORD", "")
+    from_hdr = os.environ.get("SMTP_FROM", f"ROOT Guardian <{user}>")
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = getattr(settings, "smtp_from", "guardian@root-trees.app")
-    msg["To"] = to
+    msg["From"]    = from_hdr
+    msg["To"]      = to
     msg.attach(MIMEText(text, "plain"))
     msg.attach(MIMEText(html, "html"))
-    port = int(getattr(settings, "smtp_port", 587))
-    user = getattr(settings, "smtp_user", "")
-    password = getattr(settings, "smtp_password", "")
-    sender = parseaddr(msg["From"])[1] or msg["From"]
+
+    sender = parseaddr(from_hdr)[1] or user
     with smtplib.SMTP(host, port) as srv:
-        srv.ehlo(); srv.starttls()
-        if user and password:
-            srv.login(user, password)
+        srv.ehlo()
+        srv.starttls()
+        srv.login(user, password)
         srv.sendmail(sender, to, msg.as_string())
