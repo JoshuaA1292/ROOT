@@ -356,12 +356,19 @@ async def _send_email(subject: str, text: str, html: str, to: str) -> bool:
     """Send via Gmail SMTP. Runs the blocking SMTP call in a thread pool."""
     import os, asyncio
     smtp_host = os.environ.get("SMTP_HOST", "")
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASSWORD", "")
+    logger.info("EMAIL ATTEMPT to=%s host=%s user=%s pass_set=%s", to, smtp_host or "(not set)", smtp_user or "(not set)", bool(smtp_pass))
     if not smtp_host:
-        logger.warning("EMAIL NOT SENT to %s — SMTP_HOST not set in environment.", to)
+        logger.error("EMAIL FAILED — SMTP_HOST not in environment. Check backend/.env or Render env vars.")
         return False
-    await asyncio.to_thread(_send_via_smtp, to, subject, text, html)
-    logger.info("Email sent via SMTP to %s | subject: %s", to, subject)
-    return True
+    try:
+        await asyncio.to_thread(_send_via_smtp, to, subject, text, html)
+        logger.info("EMAIL SENT OK to=%s subject=%s", to, subject)
+        return True
+    except Exception as exc:
+        logger.error("EMAIL FAILED to=%s error=%s: %s", to, type(exc).__name__, exc, exc_info=True)
+        return False
 
 
 async def send_test_email(to: str) -> dict:
@@ -379,11 +386,16 @@ async def send_test_email(to: str) -> dict:
   <p style="color:#ccc;font-size:13px;line-height:1.7;margin:0">Email delivery confirmed via Gmail SMTP.</p>
   <p style="color:#444;font-size:10px;margin:20px 0 0;font-family:'Courier New',monospace">— ROOT Guardian System</p>
 </div></body></html>"""
+    import asyncio
     try:
-        _send_via_smtp(to, subject, text, html)
-        return {"ok": True, "provider": "smtp", "to": to}
+        await asyncio.to_thread(_send_via_smtp, to, subject, text, html)
+        return {"ok": True, "provider": "smtp", "to": to,
+                "smtp_host": os.environ.get("SMTP_HOST"), "smtp_user": os.environ.get("SMTP_USER")}
     except Exception as exc:
-        return {"ok": False, "provider": "smtp", "error": str(exc)}
+        import traceback
+        return {"ok": False, "provider": "smtp", "error": str(exc),
+                "traceback": traceback.format_exc(),
+                "smtp_host": os.environ.get("SMTP_HOST"), "smtp_user": os.environ.get("SMTP_USER")}
 
 
 async def _send_via_resend(api_key: str, to: str, subject: str, html: str, text: str) -> None:

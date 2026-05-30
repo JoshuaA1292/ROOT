@@ -1,10 +1,20 @@
 from contextlib import asynccontextmanager
+import logging
+import logging.config
 from pathlib import Path
 from dotenv import load_dotenv
 
 # Load .env from backend/ regardless of where the server is started from
 _env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(_env_path, override=False)
+
+logging.config.dictConfig({
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "simple"}},
+    "formatters": {"simple": {"format": "%(levelname)s [%(name)s] %(message)s"}},
+    "root": {"level": "INFO", "handlers": ["console"]},
+})
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
